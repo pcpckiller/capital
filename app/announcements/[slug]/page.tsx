@@ -9,6 +9,7 @@ type Post = {
   slug: string;
   title: string;
   body: string;
+  publishedAt: number;
   createdAt: number;
   updatedAt: number;
 };
@@ -38,7 +39,7 @@ export default async function AnnouncementDetail({
         <article className="prose prose-invert max-w-none rounded-2xl border border-white/10 bg-white/[0.03] p-6">
           <h2 className="mb-2 text-xl font-semibold">{post.title}</h2>
           <div className="mb-4 text-[11px] text-white/60">
-            更新于 {new Date(post.updatedAt).toLocaleString()}
+            发布于 {new Date(post.publishedAt ?? post.updatedAt).toLocaleString()}
           </div>
           <div className="whitespace-pre-wrap text-sm leading-7 text-white/85">{post.body}</div>
         </article>

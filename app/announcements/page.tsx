@@ -1,12 +1,17 @@
 'use client';
 
+import {
+  useEffect,
+  useState,
+} from 'react';
+
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
 
 type PostMeta = {
   id: string;
   slug: string;
   title: string;
+  publishedAt: number;
   createdAt: number;
   updatedAt: number;
 };
@@ -50,7 +55,7 @@ export default function AnnouncementsPage() {
               >
                 <div className="text-sm font-semibold">{p.title}</div>
                 <div className="mt-1 text-[11px] text-white/60">
-                  {new Date(p.updatedAt).toLocaleString()}
+                  {new Date(p.publishedAt ?? p.updatedAt).toLocaleString()}
                 </div>
               </Link>
             ))
@@ -60,4 +65,3 @@ export default function AnnouncementsPage() {
     </main>
   );
 }
-

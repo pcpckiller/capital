@@ -28,6 +28,7 @@ export type PostRecord = {
   title: string;
   body: string;
   published: boolean;
+  publishedAt: number;
   createdAt: number;
   updatedAt: number;
 };
@@ -297,6 +298,7 @@ export async function upsertPost(input: {
   title: string;
   body: string;
   published: boolean;
+  publishedAt?: number;
 }): Promise<PostRecord> {
   const now = Date.now();
   if (kv.enabled) {
@@ -313,6 +315,7 @@ export async function upsertPost(input: {
         title: input.title,
         body: input.body,
         published: input.published ? '1' : '0',
+        publishedAt: String(input.publishedAt ?? now),
         createdAt: String(input.id ? now : now), // we don't have createdAt in store; set/update
         updatedAt: String(now)
       });
@@ -324,6 +327,7 @@ export async function upsertPost(input: {
         title: input.title,
         body: input.body,
         published: input.published,
+        publishedAt: input.publishedAt ?? now,
         createdAt: now,
         updatedAt: now
       };
@@ -343,6 +347,7 @@ export async function upsertPost(input: {
     title: input.title,
     body: input.body,
     published: input.published,
+    publishedAt: input.publishedAt ?? now,
     createdAt: now,
     updatedAt: now
   };
@@ -364,6 +369,7 @@ export async function getPostBySlug(slug: string): Promise<PostRecord | null> {
         title: data.title,
         body: data.body,
         published: data.published === '1',
+        publishedAt: Number(data.publishedAt ?? data.createdAt ?? Date.now()),
         createdAt: Number(data.createdAt ?? Date.now()),
         updatedAt: Number(data.updatedAt ?? Date.now())
       };
@@ -389,19 +395,20 @@ export async function listPublishedPosts(): Promise<PostRecord[]> {
           title: data.title,
           body: data.body,
           published: data.published === '1',
+          publishedAt: Number(data.publishedAt ?? data.createdAt ?? Date.now()),
           createdAt: Number(data.createdAt ?? Date.now()),
           updatedAt: Number(data.updatedAt ?? Date.now())
         };
         if (rec.published) out.push(rec);
       }
-      out.sort((a, b) => b.createdAt - a.createdAt);
+      out.sort((a, b) => b.publishedAt - a.publishedAt);
       return out;
     } catch {
       // fall through
     }
   }
   const arr = Array.from(memPosts.values()).filter((p) => p.published);
-  arr.sort((a, b) => b.createdAt - a.createdAt);
+  arr.sort((a, b) => b.publishedAt - a.publishedAt);
   return arr;
 }
 
@@ -419,39 +426,43 @@ export async function listAllPostsAdmin(): Promise<PostRecord[]> {
           title: data.title,
           body: data.body,
           published: data.published === '1',
+          publishedAt: Number(data.publishedAt ?? data.createdAt ?? Date.now()),
           createdAt: Number(data.createdAt ?? Date.now()),
           updatedAt: Number(data.updatedAt ?? Date.now())
         });
       }
-      out.sort((a, b) => b.createdAt - a.createdAt);
+      out.sort((a, b) => b.publishedAt - a.publishedAt);
       return out;
     } catch {
       // fall through
     }
   }
   const arr = Array.from(memPosts.values());
-  arr.sort((a, b) => b.createdAt - a.createdAt);
+  arr.sort((a, b) => b.publishedAt - a.publishedAt);
   return arr;
 }
 
 export async function seedDefaultPostsIfEmpty(): Promise<void> {
   const current = await listAllPostsAdmin();
   if (current.length > 0) return;
-  const defaults: Array<{ slug: string; title: string; body: string }> = [
+  const now = Date.now();
+  const defaults: Array<{ slug: string; title: string; body: string; publishedAt: number }> = [
     {
       slug: 'phase-ii-fundraising',
       title: '新一期募资公告',
       body:
-        '卡顿对冲基金现开启新一期募资窗口。目标规模 1000 万 USDT，认购期限 30 天，单户最低 5 万 USDT。市场中性策略组合，力求稳健阿尔法。详情请联系 IR。'
+        '卡顿对冲基金现开启新一期募资窗口。目标规模 1000 万 USDT，认购期限 30 天，单户最低 5 万 USDT。市场中性策略组合，力求稳健阿尔法。详情请联系 IR。',
+      publishedAt: now
     },
     {
       slug: 'phase-i-redemption-window',
       title: '第一期到期开放赎回公告',
       body:
-        '第一期产品现已到达开放赎回窗口，合格投资人可在本月内提交赎回申请。未提交者视为续期。更多说明与流程请参见投资人邮件或联系 IR。'
+        '第一期产品现已到达开放赎回窗口，合格投资人可在本月内提交赎回申请。未提交者视为续期。更多说明与流程请参见投资人邮件或联系 IR。',
+      publishedAt: now
     }
   ];
   for (const p of defaults) {
-    await upsertPost({ slug: p.slug, title: p.title, body: p.body, published: true });
+    await upsertPost({ slug: p.slug, title: p.title, body: p.body, published: true, publishedAt: p.publishedAt });
   }
 }

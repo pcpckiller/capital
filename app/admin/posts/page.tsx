@@ -1,6 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import {
+  useEffect,
+  useState,
+} from 'react';
+
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
@@ -10,6 +14,7 @@ type Post = {
   title: string;
   body: string;
   published: boolean;
+  publishedAt: number;
   createdAt: number;
   updatedAt: number;
 };
@@ -36,7 +41,7 @@ export default function AdminPostsPage() {
     setPosts(data as Post[]);
   }
 
-  async function save(post: { id?: string; slug: string; title: string; body: string; published: boolean }) {
+  async function save(post: { id?: string; slug: string; title: string; body: string; published: boolean; publishedAt?: number }) {
     setMessage(null);
     const res = await fetch('/api/admin/posts', {
       method: 'POST',
@@ -115,6 +120,7 @@ export default function AdminPostsPage() {
                     title: '',
                     body: '',
                     published: true,
+                    publishedAt: Date.now(),
                     createdAt: Date.now(),
                     updatedAt: Date.now()
                   })
@@ -138,7 +144,7 @@ export default function AdminPostsPage() {
                 <div>
                   <div className="text-sm font-semibold">{p.title}</div>
                   <div className="text-[11px] text-white/60">
-                    /announcements/{p.slug} • {p.published ? '已发布' : '草稿'} • {new Date(p.updatedAt).toLocaleString()}
+                    /announcements/{p.slug} • {p.published ? '已发布' : '草稿'} • {new Date(p.publishedAt ?? p.updatedAt).toLocaleString()}
                   </div>
                 </div>
                 <button
@@ -190,6 +196,18 @@ export default function AdminPostsPage() {
                 />
                 发布
               </label>
+              <div className="space-y-1">
+                <label className="text-white/70">发布时间</label>
+                <input
+                  type="datetime-local"
+                  value={new Date(editing.publishedAt ?? Date.now()).toISOString().slice(0, 16)}
+                  onChange={(e) => {
+                    const ts = Date.parse(e.target.value);
+                    setEditing({ ...editing, publishedAt: isNaN(ts) ? Date.now() : ts });
+                  }}
+                  className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
+                />
+              </div>
               <div className="flex gap-2">
                 <button
                   onClick={() =>
@@ -198,7 +216,8 @@ export default function AdminPostsPage() {
                       slug: editing.slug.trim(),
                       title: editing.title.trim(),
                       body: editing.body,
-                      published: editing.published
+                      published: editing.published,
+                      publishedAt: editing.publishedAt
                     })
                   }
                   className="inline-flex h-9 items-center justify-center rounded-2xl bg-electric px-4 text-xs font-semibold text-white shadow-glowStrong hover:brightness-110"
@@ -219,4 +238,3 @@ export default function AdminPostsPage() {
     </main>
   );
 }
-

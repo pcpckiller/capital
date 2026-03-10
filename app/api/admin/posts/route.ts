@@ -1,11 +1,12 @@
 import { getServerSession } from 'next-auth';
+import { NextResponse } from 'next/server';
+
 import { authConfig } from '@/lib/auth.server';
 import {
   listAllPostsAdmin,
   seedDefaultPostsIfEmpty,
-  upsertPost
+  upsertPost,
 } from '@/lib/mock-db';
-import { NextResponse } from 'next/server';
 
 export async function GET() {
   const session = await getServerSession(authConfig);
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
         title?: string;
         body?: string;
         published?: boolean;
+        publishedAt?: number;
       }
     | null;
   if (!body) return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
@@ -48,8 +50,8 @@ export async function POST(request: Request) {
     slug: body.slug,
     title: body.title,
     body: body.body,
-    published: body.published
+    published: body.published,
+    publishedAt: body.publishedAt
   });
   return NextResponse.json(post);
 }
-
