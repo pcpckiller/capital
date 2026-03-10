@@ -103,3 +103,12 @@ export async function updatePortfolio(input: {
   return updated;
 }
 
+export async function listUsers(): Promise<Array<Omit<UserRecord, 'passwordHash'>>> {
+  const arr: Array<Omit<UserRecord, 'passwordHash'>> = [];
+  for (const u of users.values()) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { passwordHash: _unused, ...rest } = u;
+    arr.push(rest);
+  }
+  return arr;
+}
