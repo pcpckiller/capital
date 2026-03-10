@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { BrainCircuit, Shield, Zap, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -583,6 +584,18 @@ export default function Page() {
                 <span className="mx-1 text-white/30">/</span>
                 <span className={lang === 'zh' ? 'text-electric' : 'text-white/60'}>中文</span>
               </button>
+              <Link
+                href="/signup"
+                className="inline-flex h-9 items-center justify-center rounded-2xl border border-electric/40 bg-electric/90 px-4 text-xs font-semibold text-white shadow-glow transition hover:brightness-110"
+              >
+                {lang === 'zh' ? '注册' : 'Sign up'}
+              </Link>
+              <Link
+                href="/login"
+                className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 text-xs font-semibold text-white/90 backdrop-blur transition hover:bg-white/10"
+              >
+                {lang === 'zh' ? '登录' : 'Login'}
+              </Link>
               <button
                 onClick={() => setModalOpen(true)}
                 className="inline-flex h-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 text-sm font-semibold text-white/90 backdrop-blur transition hover:bg-white/10"
@@ -660,12 +673,12 @@ export default function Page() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.18 }}
               >
-                <button
-                  onClick={() => setModalOpen(true)}
+                <Link
+                  href="/signup"
                   className="inline-flex h-12 items-center justify-center rounded-2xl bg-electric px-6 text-sm font-semibold text-white shadow-glowStrong transition hover:brightness-110"
                 >
-                  {content[lang].hero.cta}
-                </button>
+                  {lang === 'zh' ? '注册账户' : 'Create Account'}
+                </Link>
                 <motion.div
                   key={`${lang}-hero-foot`}
                   className="text-xs text-white/55"
@@ -940,4 +953,3 @@ function StrategyCard({
     </motion.div>
   );
 }
-
