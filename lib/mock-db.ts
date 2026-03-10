@@ -20,6 +20,8 @@ export type PortfolioRecord = {
 
 const memUsers = new Map<string, UserRecord>();
 const memPortfolios = new Map<string, PortfolioRecord>();
+type CurvePoint = { label: string; value: number };
+const memCurves = new Map<string, CurvePoint[]>();
 
 function ensureDemoAdmin() {
   if (kv.enabled) return;
@@ -124,6 +126,28 @@ export async function getPortfolioByUserId(userId: string): Promise<PortfolioRec
     };
   }
   return memPortfolios.get(userId) ?? null;
+}
+
+export async function getCurveByUserId(userId: string): Promise<CurvePoint[] | null> {
+  if (kv.enabled) {
+    const data = await kv.hgetall(`portfolio:${userId}`);
+    const raw = data?.curve;
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw) as CurvePoint[];
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
+    return null;
+  }
+  return memCurves.get(userId) ?? null;
+}
+
+export async function setCurveByUserId(userId: string, points: CurvePoint[]) {
+  if (kv.enabled) {
+    await kv.hmset(`portfolio:${userId}`, { curve: JSON.stringify(points) });
+    return;
+  }
+  memCurves.set(userId, points);
 }
 
 export async function updatePortfolio(input: {

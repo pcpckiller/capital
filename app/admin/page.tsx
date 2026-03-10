@@ -1,8 +1,12 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
-import { useSession } from 'next-auth/react';
+import {
+  FormEvent,
+  useState,
+} from 'react';
+
 import { ShieldCheck } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
 export default function AdminPage() {
@@ -53,12 +57,20 @@ export default function AdminPage() {
       <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
         <div className="mb-3 flex items-center justify-between">
           <div className="text-xs uppercase tracking-[0.18em] text-white/50">Admin</div>
-          <Link
-            href="/admin/users"
-            className="rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur hover:bg-white/10"
-          >
-            查看注册用户
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              href="/admin/users"
+              className="rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur hover:bg-white/10"
+            >
+              查看注册用户
+            </Link>
+            <Link
+              href="/admin/curve"
+              className="rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur hover:bg-white/10"
+            >
+              调整收益曲线
+            </Link>
+          </div>
         </div>
         <div className="mb-4 flex items-center gap-2">
           <ShieldCheck className="h-4 w-4 text-electric" />

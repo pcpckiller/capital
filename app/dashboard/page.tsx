@@ -25,6 +25,7 @@ const USDT_ADDRESSES: Record<Network, string> = {
 export default function DashboardPage() {
   const { data: session } = useSession();
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
+  const [curve, setCurve] = useState<Array<{ label: string; value: number }>>([]);
   const [network, setNetwork] = useState<Network>('USDT-ERC20');
   const [copied, setCopied] = useState(false);
   const [showRisk, setShowRisk] = useState(false);
@@ -47,14 +48,25 @@ export default function DashboardPage() {
     load();
   }, []);
 
+  useEffect(() => {
+    async function loadCurve() {
+      const res = await fetch('/api/portfolio/curve', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = (await res.json()) as Array<{ label: string; value: number }>;
+      setCurve(data);
+    }
+    loadCurve();
+  }, []);
+
   const chartData = useMemo(() => {
+    if (curve.length > 0) return curve;
     if (!portfolio) return [];
     const base = Math.max(portfolio.nav - 0.2, 0.8);
     return Array.from({ length: 12 }).map((_, i) => ({
       label: `M${i + 1}`,
       value: base + ((portfolio.nav - base) * (i + 1)) / 12
     }));
-  }, [portfolio]);
+  }, [portfolio, curve]);
 
   const address = USDT_ADDRESSES[network];
 
@@ -286,4 +298,3 @@ function SummaryTile({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-
