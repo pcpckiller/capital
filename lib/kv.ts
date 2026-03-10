@@ -9,7 +9,7 @@ const token =
   process.env.UPSTASH_REST_TOKEN ||
   undefined;
 
-type UpstashResponse<T> = { result: T } | T[];
+type UpstashResult<T> = { result: T } | T;
 
 async function pipeline<T = unknown>(commands: string[][]): Promise<T[]> {
   if (!baseUrl || !token) throw new Error('UPSTASH_REDIS_REST_URL or TOKEN missing');
@@ -20,17 +20,27 @@ async function pipeline<T = unknown>(commands: string[][]): Promise<T[]> {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ commands })
+    // Upstash/Vercel KV expect a raw JSON array of command arrays
+    body: JSON.stringify(commands)
   });
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`Upstash error: ${res.status} ${text}`);
   }
-  const data: UpstashResponse<T> = await res.json();
-  // /pipeline returns an array of results
-  if (Array.isArray(data)) return data as T[];
-  // some providers may still return single result
-  return [((data as { result: T }).result as T)];
+  const data = (await res.json()) as Array<UpstashResult<T>>;
+  if (Array.isArray(data)) {
+    return data.map((item) => {
+      const obj = item as unknown as Record<string, unknown>;
+      return obj && typeof obj === 'object' && 'result' in obj
+        ? (obj.result as T)
+        : (item as T);
+    });
+  }
+  // Fallback: some providers may return single object
+  const obj = (data as unknown) as Record<string, unknown>;
+  const single =
+    obj && typeof obj === 'object' && 'result' in obj ? (obj.result as T) : ((data as unknown) as T);
+  return [single];
 }
 
 export const kv = {
