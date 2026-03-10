@@ -57,6 +57,20 @@ Next.js 项目在 Vercel 上可零配置部署。本仓库已提供 `vercel.json
 
 本地开发时使用的 `.env.local` 已被 `.gitignore` 忽略，不会上传到仓库；线上环境通过 Vercel 的环境变量注入。
 
+### 2.1）开启用户数据持久化（可选，强烈推荐）
+
+当前仓库内置两种存储：
+
+- 本地/未配置：内存存储（重启或多实例会丢失）；
+- 线上推荐：Upstash Redis（Vercel 原生支持的 KV/Redis）。
+
+只需在 Vercel 配置以下两项，系统会自动切换为持久化存储：
+
+- `UPSTASH_REDIS_REST_URL`：Upstash 提供的 REST URL
+- `UPSTASH_REDIS_REST_TOKEN`：Upstash 提供的 REST Token
+
+配置完成并重新部署后，新注册用户、Portfolio 信息会保存在 Redis，不会随实例重启丢失。
+
 ### 3）权限与登录
 
 - 本系统采用 **next-auth v4 + Credentials**，支持邮箱/密码登录。
@@ -88,4 +102,3 @@ git push
 ```
 
 Vercel 将在每次 push 到 `main` 后自动构建并部署。祝发布顺利！
-
