@@ -576,6 +576,12 @@ export default function Page() {
             </div>
 
             <div className="flex items-center gap-2">
+              <Link
+                href="/announcements"
+                className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-3 text-[11px] font-medium uppercase tracking-[0.18em] text-white/70 backdrop-blur transition hover:bg-white/10"
+              >
+                {lang === 'zh' ? '基金公告' : 'Announcements'}
+              </Link>
               <button
                 onClick={() => setLang((prev) => (prev === 'en' ? 'zh' : 'en'))}
                 className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-3 text-[11px] font-medium uppercase tracking-[0.18em] text-white/70 backdrop-blur transition hover:bg-white/10"

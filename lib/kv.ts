@@ -52,6 +52,10 @@ export const kv = {
     for (let i = 0; i < result.length; i += 2) obj[result[i]] = result[i + 1];
     return obj;
   },
+  async hget(key: string, field: string): Promise<string | null> {
+    const [result] = (await pipeline<string | null>([['HGET', key, field]])) as (string | null)[];
+    return result ?? null;
+  },
   async hmset(key: string, map: Record<string, string>) {
     const args: string[] = [];
     for (const [k, v] of Object.entries(map)) {

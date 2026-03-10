@@ -22,6 +22,17 @@ const memUsers = new Map<string, UserRecord>();
 const memPortfolios = new Map<string, PortfolioRecord>();
 type CurvePoint = { label: string; value: number };
 const memCurves = new Map<string, CurvePoint[]>();
+export type PostRecord = {
+  id: string;
+  slug: string;
+  title: string;
+  body: string;
+  published: boolean;
+  createdAt: number;
+  updatedAt: number;
+};
+const memPosts = new Map<string, PostRecord>();
+const memSlugToId = new Map<string, string>();
 
 function ensureDemoAdmin() {
   if (kv.enabled) return;
@@ -277,4 +288,170 @@ export async function listUsers(): Promise<Array<Omit<UserRecord, 'passwordHash'
     arr.push(rest);
   }
   return arr;
+}
+
+// Posts (Announcements)
+export async function upsertPost(input: {
+  id?: string;
+  slug: string;
+  title: string;
+  body: string;
+  published: boolean;
+}): Promise<PostRecord> {
+  const now = Date.now();
+  if (kv.enabled) {
+    try {
+      let id = input.id;
+      if (!id) {
+        const existed = await kv.hget('posts:slug', input.slug);
+        if (existed) throw new Error('Slug already exists');
+        id = `post-${now}`;
+      }
+      await kv.hmset(`post:${id}`, {
+        id,
+        slug: input.slug,
+        title: input.title,
+        body: input.body,
+        published: input.published ? '1' : '0',
+        createdAt: String(input.id ? now : now), // we don't have createdAt in store; set/update
+        updatedAt: String(now)
+      });
+      await kv.hmset('posts:slug', { [input.slug]: id! });
+      await kv.sadd('posts:set', id!);
+      return {
+        id: id!,
+        slug: input.slug,
+        title: input.title,
+        body: input.body,
+        published: input.published,
+        createdAt: now,
+        updatedAt: now
+      };
+    } catch {
+      // fall through to memory
+    }
+  }
+  // memory
+  let id = input.id;
+  if (!id) {
+    if (memSlugToId.has(input.slug)) throw new Error('Slug already exists');
+    id = `post-${now}`;
+  }
+  const rec: PostRecord = {
+    id,
+    slug: input.slug,
+    title: input.title,
+    body: input.body,
+    published: input.published,
+    createdAt: now,
+    updatedAt: now
+  };
+  memPosts.set(id, rec);
+  memSlugToId.set(input.slug, id);
+  return rec;
+}
+
+export async function getPostBySlug(slug: string): Promise<PostRecord | null> {
+  if (kv.enabled) {
+    try {
+      const id = await kv.hget('posts:slug', slug);
+      if (!id) return null;
+      const data = await kv.hgetall(`post:${id}`);
+      if (!data) return null;
+      return {
+        id: data.id,
+        slug: data.slug,
+        title: data.title,
+        body: data.body,
+        published: data.published === '1',
+        createdAt: Number(data.createdAt ?? Date.now()),
+        updatedAt: Number(data.updatedAt ?? Date.now())
+      };
+    } catch {
+      // fall through
+    }
+  }
+  const id = memSlugToId.get(slug);
+  return id ? memPosts.get(id) ?? null : null;
+}
+
+export async function listPublishedPosts(): Promise<PostRecord[]> {
+  if (kv.enabled) {
+    try {
+      const ids = await kv.smembers('posts:set');
+      const out: PostRecord[] = [];
+      for (const id of ids) {
+        const data = await kv.hgetall(`post:${id}`);
+        if (!data) continue;
+        const rec: PostRecord = {
+          id: data.id,
+          slug: data.slug,
+          title: data.title,
+          body: data.body,
+          published: data.published === '1',
+          createdAt: Number(data.createdAt ?? Date.now()),
+          updatedAt: Number(data.updatedAt ?? Date.now())
+        };
+        if (rec.published) out.push(rec);
+      }
+      out.sort((a, b) => b.createdAt - a.createdAt);
+      return out;
+    } catch {
+      // fall through
+    }
+  }
+  const arr = Array.from(memPosts.values()).filter((p) => p.published);
+  arr.sort((a, b) => b.createdAt - a.createdAt);
+  return arr;
+}
+
+export async function listAllPostsAdmin(): Promise<PostRecord[]> {
+  if (kv.enabled) {
+    try {
+      const ids = await kv.smembers('posts:set');
+      const out: PostRecord[] = [];
+      for (const id of ids) {
+        const data = await kv.hgetall(`post:${id}`);
+        if (!data) continue;
+        out.push({
+          id: data.id,
+          slug: data.slug,
+          title: data.title,
+          body: data.body,
+          published: data.published === '1',
+          createdAt: Number(data.createdAt ?? Date.now()),
+          updatedAt: Number(data.updatedAt ?? Date.now())
+        });
+      }
+      out.sort((a, b) => b.createdAt - a.createdAt);
+      return out;
+    } catch {
+      // fall through
+    }
+  }
+  const arr = Array.from(memPosts.values());
+  arr.sort((a, b) => b.createdAt - a.createdAt);
+  return arr;
+}
+
+export async function seedDefaultPostsIfEmpty(): Promise<void> {
+  const current = await listAllPostsAdmin();
+  if (current.length > 0) return;
+  const defaults: Array<{ slug: string; title: string; body: string }> = [
+    {
+      slug: 'phase-ii-fundraising',
+      title: '新一期募资公告',
+      body:
+        '卡顿对冲基金现开启新一期募资窗口。目标规模 1000 万 USDT，认购期限 30 天，单户最低 5 万 USDT。市场中性策略组合，力求稳健阿尔法。详情请联系 IR。'
+    },
+    {
+      slug: 'phase-i-redemption-window',
+      title: '第一期到期开放赎回公告',
+      body:
+        '第一期产品现已到达开放赎回窗口，合格投资人可在本月内提交赎回申请。未提交者视为续期。更多说明与流程请参见投资人邮件或联系 IR。'
+    }
+  ];
+  for (const p of defaults) {
+    await upsertPost({ slug: p.slug, title: p.title, body: p.body, published: true });
+  }
 }
