@@ -1,10 +1,27 @@
 'use client';
 
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+
+import {
+  AnimatePresence,
+  motion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+} from 'framer-motion';
+import {
+  BrainCircuit,
+  Shield,
+  X,
+  Zap,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
-import { BrainCircuit, Shield, Zap, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   CartesianGrid,
   Line,
@@ -12,7 +29,7 @@ import {
   ResponsiveContainer,
   Tooltip,
   XAxis,
-  YAxis
+  YAxis,
 } from 'recharts';
 
 type EquityPoint = { month: string; equity: number };
@@ -907,18 +924,32 @@ export default function Page() {
           </div>
         </div>
 
-        <footer className="mt-10 flex flex-col items-start justify-between gap-3 border-t border-white/10 pt-6 text-xs text-white/55 sm:flex-row sm:items-center">
-          <div>© {new Date().getFullYear()} Cartoon Capital</div>
-          <motion.div
-            key={`${lang}-footer`}
-            className="text-white/45"
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25 }}
-          >
-            {content[lang].footer.right}
-          </motion.div>
-        </footer>
+        <div className="mt-10 border-t border-white/10 pt-8">
+          <div className="text-xs uppercase tracking-widest text-white/60">
+            {lang === 'zh' ? '合作伙伴' : 'Partners'}
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+            {[
+              { name: 'Binance', logo: '/partners/binance.svg' },
+              { name: 'OKX', logo: '/partners/okx.svg' },
+              { name: 'Bybit', logo: '/partners/bybit.svg' },
+              { name: 'Peak XV Partners', logo: '/partners/peakxv.svg' },
+              { name: 'EC Markets', logo: '/partners/ecmarkets.svg' }
+            ].map((p) => (
+              <div
+                key={p.name}
+                className="flex h-16 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] p-3"
+                title={p.name}
+              >
+                <img
+                  src={p.logo}
+                  alt={p.name}
+                  className="max-h-10 opacity-90"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
     </main>
   );
