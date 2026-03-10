@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { getPostBySlug } from '@/lib/mock-db';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,14 +19,8 @@ export default async function AnnouncementDetail({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  let res: Response | null = null;
-  try {
-    res = await fetch(`/api/posts/${encodeURIComponent(slug)}`, { cache: 'no-store' });
-  } catch {
-    res = null;
-  }
-  if (!res || !res.ok) notFound();
-  const post = (await res.json()) as Post;
+  const post = await getPostBySlug(slug);
+  if (!post || !post.published) notFound();
 
   return (
     <main className="min-h-dvh bg-bg px-4 py-8 text-white">
