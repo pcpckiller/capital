@@ -930,11 +930,11 @@ export default function Page() {
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
             {[
-              { name: 'Binance', logo: '/partners/binance.svg' },
-              { name: 'OKX', logo: '/partners/okx.svg' },
-              { name: 'Bybit', logo: '/partners/bybit.svg' },
-              { name: 'Peak XV Partners', logo: '/partners/peakxv.svg' },
-              { name: 'EC Markets', logo: '/partners/ecmarkets.svg' }
+              { name: 'Binance', logo: '/partners/binance.svg?v=2' },
+              { name: 'OKX', logo: '/partners/okx.svg?v=2' },
+              { name: 'Bybit', logo: '/partners/bybit.svg?v=2' },
+              { name: 'Peak XV Partners', logo: '/partners/peakxv.svg?v=2' },
+              { name: 'EC Markets', logo: '/partners/ecmarkets.svg?v=2' }
             ].map((p) => (
               <div
                 key={p.name}
