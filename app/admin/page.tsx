@@ -76,6 +76,12 @@ export default function AdminPage() {
             >
               环境诊断
             </Link>
+            <Link
+              href="/api/admin/diagnostics/kv-test"
+              className="rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur hover:bg-white/10"
+            >
+              KV连通性
+            </Link>
           </div>
         </div>
         <div className="mb-4 flex items-center gap-2">
