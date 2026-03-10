@@ -1,10 +1,30 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { signOut, useSession } from 'next-auth/react';
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+
+import {
+  AlertTriangle,
+  Copy,
+  LogOut,
+  Wallet,
+} from 'lucide-react';
+import {
+  signOut,
+  useSession,
+} from 'next-auth/react';
 import dynamic from 'next/dynamic';
-import { AlertTriangle, Copy, LogOut, Wallet } from 'lucide-react';
+import {
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
 const QRCode = dynamic(() => import('qrcode.react').then((m) => m.QRCodeCanvas), { ssr: false });
 
@@ -19,7 +39,7 @@ type Network = 'USDT-ERC20' | 'USDT-TRC20';
 
 const USDT_ADDRESSES: Record<Network, string> = {
   'USDT-ERC20': '0xc76f21B6E119E2295DDC1E509fb31badfe0eA5F3',
-  'USDT-TRC20': 'TAbc123…TRC20-DEMO'
+  'USDT-TRC20': 'TCKHSD6B3mL79z7zq2srsiMErUk77GbHa2'
 };
 
 export default function DashboardPage() {

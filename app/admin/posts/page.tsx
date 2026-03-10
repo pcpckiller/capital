@@ -7,6 +7,7 @@ import {
 
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import { useRef } from 'react';
 
 type Post = {
   id: string;
@@ -24,6 +25,7 @@ export default function AdminPostsPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [editing, setEditing] = useState<Post | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
   const role = (session?.user as { role?: string } | undefined)?.role;
 
   useEffect(() => {
@@ -163,6 +165,37 @@ export default function AdminPostsPage() {
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur">
             <div className="mb-3 text-xs uppercase tracking-widest text-white/60">{editing.id ? '编辑公告' : '新建公告'}</div>
             <div className="grid gap-3">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 hover:bg-white/10"
+                >
+                  上传图片
+                </button>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    const fd = new FormData();
+                    fd.append('file', f);
+                    const res = await fetch('/api/admin/uploads', { method: 'POST', body: fd });
+                    const data = await res.json().catch(() => null);
+                    if (!res.ok) {
+                      setMessage(data?.error ?? '上传失败');
+                      return;
+                    }
+                    const alt = f.name;
+                    const md = `\n\n![${alt}](${data.src})\n\n`;
+                    setEditing({ ...editing, body: (editing.body || '') + md });
+                    if (fileRef.current) fileRef.current.value = '';
+                  }}
+                />
+              </div>
               <div className="space-y-1">
                 <label className="text-white/70">标题</label>
                 <input

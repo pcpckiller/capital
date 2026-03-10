@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+
 import { getPostBySlug } from '@/lib/mock-db';
 
 export const dynamic = 'force-dynamic';
@@ -41,7 +42,36 @@ export default async function AnnouncementDetail({
           <div className="mb-4 text-[11px] text-white/60">
             发布于 {new Date(post.publishedAt ?? post.updatedAt).toLocaleString()}
           </div>
-          <div className="whitespace-pre-wrap text-sm leading-7 text-white/85">{post.body}</div>
+          <div className="text-sm leading-7 text-white/85">
+            {post.body.split(/\n{2,}/).map((block, idx) => {
+              const md = /^!\[([^\]]*)\]\((\/images\/[^\s)]+)\)$/i;
+              const m1 = block.match(md);
+              if (m1) {
+                const alt = m1[1] ?? '';
+                const url = m1[2];
+                return (
+                  <div key={idx} className="my-3 flex justify-center">
+                    <img src={url} alt={alt} className="max-h-[420px] rounded-xl border border-white/10" />
+                  </div>
+                );
+              }
+              const urlOnly = /^(\/images\/[^\s]+)$/i;
+              const m2 = block.match(urlOnly);
+              if (m2) {
+                const url = m2[1];
+                return (
+                  <div key={idx} className="my-3 flex justify-center">
+                    <img src={url} alt="" className="max-h-[420px] rounded-xl border border-white/10" />
+                  </div>
+                );
+              }
+              return (
+                <p key={idx} className="whitespace-pre-wrap">
+                  {block}
+                </p>
+              );
+            })}
+          </div>
         </article>
       </div>
     </main>
