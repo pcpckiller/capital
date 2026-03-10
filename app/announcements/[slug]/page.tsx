@@ -1,7 +1,5 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
 type Post = {
   id: string;
@@ -12,25 +10,20 @@ type Post = {
   updatedAt: number;
 };
 
-export default function AnnouncementDetail({ params }: { params: { slug: string } }) {
-  const [post, setPost] = useState<Post | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      const res = await fetch(`/api/posts/${encodeURIComponent(params.slug)}`, { cache: 'no-store' });
-      if (!res.ok) {
-        setPost(null);
-        setLoading(false);
-        return;
-      }
-      const data = (await res.json()) as Post;
-      setPost(data);
-      setLoading(false);
-    }
-    load();
-  }, [params.slug]);
+export default async function AnnouncementDetail({
+  params
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  let res: Response | null = null;
+  try {
+    res = await fetch(`/api/posts/${encodeURIComponent(slug)}`, { cache: 'no-store' });
+  } catch {
+    res = null;
+  }
+  if (!res || !res.ok) notFound();
+  const post = (await res.json()) as Post;
 
   return (
     <main className="min-h-dvh bg-bg px-4 py-8 text-white">
@@ -45,25 +38,14 @@ export default function AnnouncementDetail({ params }: { params: { slug: string 
           </Link>
         </div>
 
-        {loading ? (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/60">
-            加载中…
+        <article className="prose prose-invert max-w-none rounded-2xl border border-white/10 bg-white/[0.03] p-6">
+          <h2 className="mb-2 text-xl font-semibold">{post.title}</h2>
+          <div className="mb-4 text-[11px] text-white/60">
+            更新于 {new Date(post.updatedAt).toLocaleString()}
           </div>
-        ) : !post ? (
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/60">
-            未找到该文章。
-          </div>
-        ) : (
-          <article className="prose prose-invert max-w-none rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-            <h2 className="mb-2 text-xl font-semibold">{post.title}</h2>
-            <div className="mb-4 text-[11px] text-white/60">
-              更新于 {new Date(post.updatedAt).toLocaleString()}
-            </div>
-            <div className="whitespace-pre-wrap text-sm leading-7 text-white/85">{post.body}</div>
-          </article>
-        )}
+          <div className="whitespace-pre-wrap text-sm leading-7 text-white/85">{post.body}</div>
+        </article>
       </div>
     </main>
   );
 }
-

@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server';
+
 import { getPostBySlug } from '@/lib/mock-db';
 
 export async function GET(
   _req: Request,
-  { params }: { params: { slug: string } }
+  ctx: { params: Promise<{ slug: string }> }
 ) {
-  const post = await getPostBySlug(params.slug);
+  const { slug } = await ctx.params;
+  const post = await getPostBySlug(slug);
   if (!post || !post.published) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
   return NextResponse.json(post);
 }
-
