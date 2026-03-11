@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server';
 import { authConfig } from '@/lib/auth.server';
 import { assignDepositAddresses, getDepositAddresses } from '@/lib/mock-db';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const session = await getServerSession(authConfig);
   const userId = (session?.user as { id?: string } | undefined)?.id;
@@ -16,4 +19,3 @@ export async function GET() {
   }
   return NextResponse.json(addr ?? {});
 }
-

@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createUser, findUserByEmail } from '@/lib/mock-db';
+import { assignDepositAddresses, createUser, findUserByEmail } from '@/lib/mock-db';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -18,6 +21,11 @@ export async function POST(request: Request) {
     password: body.password
   });
 
+  try {
+    await assignDepositAddresses(user.id);
+  } catch {
+    // best-effort; dashboard fetch will also attempt assignment on first load
+  }
+
   return NextResponse.json({ id: user.id, email: user.email, fullName: user.fullName });
 }
-
