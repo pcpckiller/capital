@@ -50,6 +50,18 @@ export default function DashboardPage() {
   const [copied, setCopied] = useState(false);
   const [showRisk, setShowRisk] = useState(false);
   const [fundraising, setFundraising] = useState<{ progress: number; updatedAt: number } | null>(null);
+  type FeeRow = {
+    month: string;
+    navStart: number;
+    grossReturn: number;
+    navBeforeFee: number;
+    managementFee: number;
+    performanceFee: number;
+    navEnd: number;
+    hwmBefore: number;
+    hwmAfter: number;
+  };
+  const [fees, setFees] = useState<FeeRow[]>([]);
 
   useEffect(() => {
     const key = 'cc-risk-accepted';
@@ -89,6 +101,16 @@ export default function DashboardPage() {
     loadCurve();
   }, []);
 
+  useEffect(() => {
+    async function loadFees() {
+      const res = await fetch('/api/portfolio/fees', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = (await res.json()) as FeeRow[];
+      setFees(data);
+    }
+    loadFees();
+  }, []);
+
   const chartData = useMemo(() => {
     if (curve.length > 0) return curve;
     if (!portfolio) return [];
@@ -100,6 +122,7 @@ export default function DashboardPage() {
   }, [portfolio, curve]);
 
   const address = USDT_ADDRESSES[network];
+  const netAfterFees = fees.length > 0 ? fees[fees.length - 1].navEnd : null;
 
   async function handleCopy() {
     await navigator.clipboard.writeText(address);
@@ -161,8 +184,14 @@ export default function DashboardPage() {
             <div className="text-xs uppercase tracking-widest text-white/60">Portfolio Summary</div>
             <div className="mt-4 grid gap-4 sm:grid-cols-3">
               <SummaryTile
-                label="总资产 / Total Balance"
-                value={portfolio ? `${portfolio.totalBalance.toLocaleString()} USDT` : '—'}
+                label="净值（含费用） / Net Balance"
+                value={
+                  netAfterFees !== null
+                    ? `${netAfterFees.toLocaleString()} USDT`
+                    : portfolio
+                    ? `${portfolio.totalBalance.toLocaleString()} USDT`
+                    : '—'
+                }
               />
               <SummaryTile
                 label="累计盈亏 / Cumulative PnL"
@@ -186,6 +215,41 @@ export default function DashboardPage() {
               </p>
             )}
           </div>
+          {fees.length > 0 && (
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="text-xs uppercase tracking-widest text-white/60">Fee Breakdown</div>
+                <div
+                  className="text-[11px] text-white/50"
+                  title="Performance fees are only charged on new profits above the previous peak NAV."
+                >
+                  HWM Tooltip
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="text-white/60">
+                    <tr>
+                      <th className="py-2">Month</th>
+                      <th className="py-2">Mgmt Fee</th>
+                      <th className="py-2">Perf Fee</th>
+                      <th className="py-2">NAV End</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fees.map((r) => (
+                      <tr key={r.month} className="border-t border-white/10">
+                        <td className="py-2 text-white/75">{r.month}</td>
+                        <td className="py-2 text-white/60">-${r.managementFee.toLocaleString()}</td>
+                        <td className="py-2 text-white/60">-${r.performanceFee.toLocaleString()}</td>
+                        <td className="py-2 text-white/85">{r.navEnd.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur">
             <div className="flex items-center justify-between">
               <div className="text-xs uppercase tracking-widest text-white/60">Fundraising Progress</div>
