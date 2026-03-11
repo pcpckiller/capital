@@ -23,6 +23,7 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import {
+  Area,
   CartesianGrid,
   Line,
   LineChart,
@@ -32,7 +33,7 @@ import {
   YAxis,
 } from 'recharts';
 
-type EquityPoint = { month: string; equity: number };
+type EquityPoint = { month: string; equity: number; growth?: number };
 type Lang = 'en' | 'zh';
 
 const content = {
@@ -351,10 +352,10 @@ function PerformanceChart({ data }: { data: EquityPoint[] }) {
         <div className="mb-3 flex items-center justify-between gap-4">
           <div>
             <div className="text-sm font-semibold">Performance Graph</div>
-            <div className="text-xs text-white/60">12-month equity curve (illustrative)</div>
+            <div className="text-xs text-white/60">12-month equity curve</div>
           </div>
           <div className="text-xs text-white/60">
-            Base 100 → <span className="text-white/85">{data.at(-1)?.equity ?? 100}</span>
+            Start $5M → <span className="text-white/85">{((data.at(-1)?.equity ?? 0) / 1_000_000).toFixed(2)}M</span>
           </div>
         </div>
         <div className="h-56 w-full">
@@ -362,11 +363,11 @@ function PerformanceChart({ data }: { data: EquityPoint[] }) {
             <div className="h-full w-full rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02]" />
           ) : (
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-            <LineChart data={data} margin={{ top: 8, right: 10, left: -18, bottom: 0 }}>
+            <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 6 }}>
               <defs>
-                <linearGradient id="ccLine" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#0070f3" stopOpacity={0.9} />
-                  <stop offset="100%" stopColor="#7c3aed" stopOpacity={0.35} />
+                <linearGradient id="ccAreaFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="10%" stopColor="#10b981" stopOpacity={0.28} />
+                  <stop offset="100%" stopColor="rgba(16,185,129,0)" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
@@ -375,32 +376,41 @@ function PerformanceChart({ data }: { data: EquityPoint[] }) {
                 tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
+                interval={0}
               />
               <YAxis
+                tickFormatter={(v) => `${Math.round(Number(v) / 1_000_000)}M`}
                 tick={{ fill: 'rgba(255,255,255,0.45)', fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
-                width={38}
-                domain={['dataMin - 2', 'dataMax + 2']}
+                width={44}
+                domain={['dataMin - 500000', 'dataMax + 500000']}
               />
               <Tooltip
                 cursor={{ stroke: 'rgba(0,112,243,0.35)' }}
-                contentStyle={{
-                  background: 'rgba(10,10,10,0.9)',
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  borderRadius: 14,
-                  boxShadow: '0 18px 60px rgba(0,0,0,0.55)',
-                  color: 'rgba(255,255,255,0.9)'
-                }}
+                contentStyle={{ background: 'rgba(10,10,10,0.9)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 14, boxShadow: '0 18px 60px rgba(0,0,0,0.55)', color: 'rgba(255,255,255,0.9)' }}
                 labelStyle={{ color: 'rgba(255,255,255,0.65)' }}
+                formatter={(value: unknown, _name: unknown, _props: unknown) => {
+                  const v = Number(value || 0);
+                  return [`$${v.toLocaleString()}`, 'Net Value'];
+                }}
+                labelFormatter={(label: unknown, payload: unknown) => {
+                  const arr = (payload as Array<{ payload?: unknown }>) || [];
+                  if (!arr[0]?.payload) return '';
+                  const p = arr[0].payload as { growth?: number; month?: string };
+                  const g = (p.growth ?? 0) * 100;
+                  const monthLabel = p.month ?? String(label ?? '');
+                  return `${monthLabel} | Growth: ${g > 0 ? '+' : ''}${g.toFixed(0)}%`;
+                }}
               />
+              <Area type="monotone" dataKey="equity" stroke="none" fill="url(#ccAreaFill)" />
               <Line
                 type="monotone"
                 dataKey="equity"
-                stroke="url(#ccLine)"
-                strokeWidth={3}
+                stroke="#10b981"
+                strokeWidth={2.5}
                 dot={false}
-                activeDot={{ r: 5, fill: '#0070f3', stroke: 'rgba(255,255,255,0.5)', strokeWidth: 1 }}
+                activeDot={{ r: 5, fill: '#10b981', stroke: 'rgba(255,255,255,0.5)', strokeWidth: 1 }}
               />
             </LineChart>
             </ResponsiveContainer>
@@ -544,23 +554,21 @@ export default function Page() {
   const [modalOpen, setModalOpen] = useState(false);
   const [lang, setLang] = useState<Lang>('en');
 
-  const data = useMemo<EquityPoint[]>(
-    () => [
-      { month: 'Apr', equity: 100 },
-      { month: 'May', equity: 112 },
-      { month: 'Jun', equity: 129 },
-      { month: 'Jul', equity: 144 },
-      { month: 'Aug', equity: 161 },
-      { month: 'Sep', equity: 182 },
-      { month: 'Oct', equity: 201 },
-      { month: 'Nov', equity: 224 },
-      { month: 'Dec', equity: 251 },
-      { month: 'Jan', equity: 278 },
-      { month: 'Feb', equity: 309 },
-      { month: 'Mar', equity: 343 }
-    ],
-    []
-  );
+  const data = useMemo<EquityPoint[]>(() => {
+    const start = new Date('2025-03-01T00:00:00Z');
+    let equity = 5_000_000;
+    const out: EquityPoint[] = [];
+    for (let i = 1; i <= 12; i++) {
+      const rate = i <= 4 ? 0.2 : i <= 8 ? 0.15 : 0.1;
+      equity = equity * (1 + rate);
+      const d = new Date(start);
+      d.setUTCMonth(start.getUTCMonth() + i);
+      const monthName = d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
+      const label = `${monthName} ${d.getUTCFullYear()}`;
+      out.push({ month: label, equity: Math.round(equity), growth: rate });
+    }
+    return out;
+  }, []);
 
   return (
     <main className="relative min-h-dvh bg-bg">
