@@ -273,6 +273,20 @@ function DepositPoolCard() {
   const [trc20, setTrc20] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [kvStatus, setKvStatus] = useState<'unknown' | 'enabled' | 'disabled'>('unknown');
+
+  React.useEffect(() => {
+    async function probe() {
+      try {
+        const res = await fetch('/api/admin/diagnostics/kv-test', { cache: 'no-store' });
+        const data = await res.json().catch(() => null);
+        setKvStatus(data?.enabled ? 'enabled' : 'disabled');
+      } catch {
+        setKvStatus('unknown');
+      }
+    }
+    probe();
+  }, []);
 
   async function save() {
     setMessage(null);
@@ -294,7 +308,7 @@ function DepositPoolCard() {
     if (!res.ok) {
       setMessage(data?.error ?? '保存失败');
     } else {
-      setMessage('地址池已更新');
+      setMessage(data?.persistent ? '地址池已更新（已持久化）' : '地址池已更新（仅当前实例内有效，建议配置 KV）');
     }
     setSaving(false);
   }
@@ -303,6 +317,18 @@ function DepositPoolCard() {
     <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
       <div className="mb-3 flex items-center justify-between">
         <div className="text-xs uppercase tracking-[0.18em] text-white/50">Deposit Address Pools</div>
+        <div className="text-[11px] text-white/50">
+          KV 状态：
+          <span className={kvStatus === 'enabled' ? 'text-emerald-300' : 'text-amber-300'}>
+            {kvStatus === 'enabled' ? '已配置' : kvStatus === 'disabled' ? '未配置' : '未知'}
+          </span>
+        </div>
+      </div>
+      <div className="mb-2 text-[11px] text-white/60">
+        当前存储：
+        <span className={kvStatus === 'enabled' ? 'ml-1 rounded-md bg-emerald-400/10 px-1.5 py-0.5 text-emerald-300' : 'ml-1 rounded-md bg-amber-400/10 px-1.5 py-0.5 text-amber-200'}>
+          {kvStatus === 'enabled' ? '持久化至 KV（跨实例可见）' : '仅当前实例内存（建议配置 KV）'}
+        </span>
       </div>
       {message && <div className="mb-3 rounded-xl border border-amber-800/40 bg-amber-900/20 p-2 text-xs text-amber-200">{message}</div>}
       <div className="grid gap-3 sm:grid-cols-2">
@@ -337,6 +363,55 @@ function DepositPoolCard() {
         </button>
         <div className="self-center text-[11px] text-white/55">将按顺序为新注册用户自动分配</div>
       </div>
+
+      <AssignTester />
+    </div>
+  );
+}
+
+function AssignTester() {
+  const [email, setEmail] = useState('');
+  const [result, setResult] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function run() {
+    setLoading(true);
+    setResult(null);
+    const res = await fetch('/api/admin/deposit-addresses/assign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      setResult(data?.error ?? '失败');
+    } else {
+      const a = data?.addresses ?? {};
+      setResult(`ERC20: ${a.erc20 || '-'} | TRC20: ${a.trc20 || '-'}`);
+    }
+    setLoading(false);
+  }
+
+  return (
+    <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+      <div className="mb-2 text-xs uppercase tracking-widest text-white/60">分配测试 / Assign Test</div>
+      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+        <input
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          type="email"
+          placeholder="输入已注册的投资人邮箱"
+          className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
+        />
+        <button
+          onClick={run}
+          disabled={!email || loading}
+          className="inline-flex h-9 items-center justify-center rounded-2xl bg-white/10 px-4 text-xs font-semibold text-white hover:bg-white/15 disabled:opacity-60"
+        >
+          {loading ? '处理中…' : '立即分配/查看'}
+        </button>
+      </div>
+      {result && <div className="mt-2 text-[11px] text-white/65">{result}</div>}
     </div>
   );
 }
