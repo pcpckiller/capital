@@ -269,6 +269,7 @@ export async function listUsers(): Promise<Array<Omit<UserRecord, 'passwordHash'
         const u = await findUserByEmail(email);
         if (u) {
           const { passwordHash: _omit1, ...rest } = u;
+          void _omit1;
           out.push(rest);
         }
       }
@@ -276,6 +277,7 @@ export async function listUsers(): Promise<Array<Omit<UserRecord, 'passwordHash'
         const admin = await findUserByEmail('admin@cartoon.capital');
         if (admin) {
           const { passwordHash: _omit2, ...rest } = admin;
+          void _omit2;
           out.push(rest);
         }
       }
@@ -287,6 +289,7 @@ export async function listUsers(): Promise<Array<Omit<UserRecord, 'passwordHash'
   const arr: Array<Omit<UserRecord, 'passwordHash'>> = [];
   for (const u of memUsers.values()) {
     const { passwordHash: _omit3, ...rest } = u;
+    void _omit3;
     arr.push(rest);
   }
   return arr;
@@ -492,4 +495,3 @@ export async function setFundraisingProgress(progress: number): Promise<{ progre
   memFundraising = { progress: p, updatedAt };
   return memFundraising;
 }
-

@@ -51,7 +51,10 @@ export default async function AnnouncementDetail({
                 const url = m1[2];
                 return (
                   <div key={idx} className="my-3 flex justify-center">
-                    <img src={url} alt={alt} className="max-h-[420px] rounded-xl border border-white/10" />
+                    <picture>
+                      <source srcSet={url} />
+                      <img src={url} alt={alt} className="max-h-[420px] rounded-xl border border-white/10" />
+                    </picture>
                   </div>
                 );
               }
@@ -61,7 +64,10 @@ export default async function AnnouncementDetail({
                 const url = m2[1];
                 return (
                   <div key={idx} className="my-3 flex justify-center">
-                    <img src={url} alt="" className="max-h-[420px] rounded-xl border border-white/10" />
+                    <picture>
+                      <source srcSet={url} />
+                      <img src={url} alt="" className="max-h-[420px] rounded-xl border border-white/10" />
+                    </picture>
                   </div>
                 );
               }
