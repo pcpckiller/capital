@@ -896,8 +896,9 @@ export default function Page() {
                       {content[lang].alphaHighlight.cardMetricLabel}
                     </div>
                   </div>
-                  <div className="mt-3 text-sm text-white/70">
-                    {content[lang].alphaHighlight.cardCopy}
+                  <div className="mt-3 space-y-1.5 text-xs tracking-wide text-slate-400 sm:text-sm">
+                    <p>14.5% 并非运气，而是严苛算法下的必然。我们在流动性边界内寻求最优执行，在严格控制 12.5% 最大回撤的同时，成功实现了 3M 至 15M 的资金阶梯式跃迁。</p>
+                    <p>14.5% is not luck; it&rsquo;s the result of algorithmic rigor. By optimizing execution within liquidity boundaries, we secured a seamless capital transition from $3M to $15M while strictly capping drawdown at 12.5%.</p>
                   </div>
                 </div>
 
