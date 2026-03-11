@@ -209,6 +209,9 @@ export default function DashboardPage() {
             <div className="mt-2 text-right text-xs text-white/70">
               {Math.max(0, Math.min(100, fundraising?.progress ?? 0))}%
             </div>
+            <div className="mt-1 text-[11px] text-white/55">
+              募资规模上限（Hard Cap）：<span className="font-semibold">2,000万 USDT</span>
+            </div>
           </div>
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur">
             <div className="mb-3 flex items-center justify-between">
