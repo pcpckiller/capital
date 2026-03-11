@@ -22,19 +22,9 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import {
-  Area,
-  CartesianGrid,
-  Line,
-  LineChart,
-  ReferenceDot,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import { Area, CartesianGrid, Line, LineChart, ReferenceDot, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
-type EquityPoint = { month: string; equity: number; growth: number; dd: number };
+type EquityPoint = { date: string; equity: number; roi: number; dd: number; monthKey: string };
 type Lang = 'en' | 'zh';
 
 const content = {
@@ -346,6 +336,25 @@ function PerformanceChart({ data }: { data: EquityPoint[] }) {
     setMounted(true);
   }, []);
 
+  const julyMin = useMemo(() => {
+    let min: EquityPoint | null = null;
+    for (const p of data) {
+      if (p.date.startsWith('2025-07')) {
+        if (!min || p.equity < min.equity) min = p;
+      }
+    }
+    return min;
+  }, [data]);
+  const novMin = useMemo(() => {
+    let min: EquityPoint | null = null;
+    for (const p of data) {
+      if (p.date.startsWith('2025-11')) {
+        if (!min || p.equity < min.equity) min = p;
+      }
+    }
+    return min;
+  }, [data]);
+
   return (
     <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03] p-4 shadow-[0_0_0_1px_rgba(0,112,243,0.25)] backdrop-blur">
       <div className="absolute inset-0 bg-[radial-gradient(600px_circle_at_20%_0%,rgba(0,112,243,0.18),transparent_55%)]" />
@@ -367,25 +376,27 @@ function PerformanceChart({ data }: { data: EquityPoint[] }) {
             <LineChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 6 }}>
               <defs>
                 <linearGradient id="ccAreaFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="10%" stopColor="#10b981" stopOpacity={0.28} />
+                  <stop offset="10%" stopColor="#10b981" stopOpacity={0.2} />
                   <stop offset="100%" stopColor="rgba(16,185,129,0)" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
               <XAxis
-                dataKey="month"
+                dataKey="date"
                 tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
-                interval="preserveStartEnd"
                 minTickGap={18}
                 tickMargin={8}
                 tickFormatter={(label: string) => {
-                  const [mon, yr] = label.split(' ');
-                  if ((mon === 'Mar' && yr === '2025') || (yr === '2026' && (mon === 'Jan' || mon === 'Feb'))) {
-                    return label;
+                  // Only show month for the first day entries
+                  if (!label) return '';
+                  const [y, m, d] = label.split('-');
+                  if (d === '01') {
+                    const mon = new Date(`${label}T00:00:00Z`).toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
+                    return `${mon} ${y}`;
                   }
-                  return mon;
+                  return '';
                 }}
               />
               <YAxis
@@ -403,14 +414,14 @@ function PerformanceChart({ data }: { data: EquityPoint[] }) {
                 content={({ label, payload }) => {
                   if (!payload || payload.length === 0) return null;
                   const p = payload[0].payload as EquityPoint;
-                  const g = p.growth * 100;
                   const dd = p.dd * 100;
+                  const mRoi = p.roi * 100;
                   return (
                     <div style={{ padding: 10 }}>
                       <div style={{ fontSize: 12, opacity: 0.8 }}>{label}</div>
-                      <div style={{ fontSize: 12, marginTop: 4 }}>Net Value: ${p.equity.toLocaleString()}</div>
-                      <div style={{ fontSize: 12 }}>Growth: {g >= 0 ? '+' : ''}{g.toFixed(1)}%</div>
-                      <div style={{ fontSize: 12 }}>Drawdown: {dd.toFixed(1)}%</div>
+                      <div style={{ fontSize: 12, marginTop: 4 }}>NAV: ${p.equity.toLocaleString()}</div>
+                      <div style={{ fontSize: 12 }}>Monthly ROI: {mRoi >= 0 ? '+' : ''}{mRoi.toFixed(1)}%</div>
+                      <div style={{ fontSize: 12 }}>Current Drawdown: {dd.toFixed(1)}%</div>
                     </div>
                   );
                 }}
@@ -424,23 +435,44 @@ function PerformanceChart({ data }: { data: EquityPoint[] }) {
                 dot={false}
                 activeDot={{ r: 5, fill: '#10b981', stroke: 'rgba(255,255,255,0.5)', strokeWidth: 1 }}
               />
-              <ReferenceDot
-                x="Jul 2025"
-                y={Math.max(...data.filter((d) => d.month === 'Jul 2025').map((d) => d.equity))}
-                r={3}
-                fill="#10b981"
-                stroke="rgba(255,255,255,0.7)"
-                strokeWidth={1}
-                label={({ viewBox }: { viewBox?: { x?: number; y?: number } }) => {
-                  const x = (viewBox?.x ?? 0) as number;
-                  const y = (viewBox?.y ?? 0) as number;
-                  return (
-                    <text x={x + 8} y={y - 8} fill="rgba(255,255,255,0.65)" fontSize="11">
-                      Strategic Adjustment / Drawdown
-                    </text>
-                  );
-                }}
-              />
+              {julyMin && (
+                <ReferenceDot
+                  x={julyMin.date}
+                  y={julyMin.equity}
+                  r={3}
+                  fill="#10b981"
+                  stroke="rgba(255,255,255,0.7)"
+                  strokeWidth={1}
+                  label={({ viewBox }: { viewBox?: { x?: number; y?: number } }) => {
+                    const x = (viewBox?.x ?? 0) as number;
+                    const y = (viewBox?.y ?? 0) as number;
+                    return (
+                      <text x={x + 8} y={y - 8} fill="rgba(255,255,255,0.6)" fontSize="11">
+                        Market Liquidity Shock
+                      </text>
+                    );
+                  }}
+                />
+              )}
+              {novMin && (
+                <ReferenceDot
+                  x={novMin.date}
+                  y={novMin.equity}
+                  r={3}
+                  fill="#10b981"
+                  stroke="rgba(255,255,255,0.7)"
+                  strokeWidth={1}
+                  label={({ viewBox }: { viewBox?: { x?: number; y?: number } }) => {
+                    const x = (viewBox?.x ?? 0) as number;
+                    const y = (viewBox?.y ?? 0) as number;
+                    return (
+                      <text x={x + 8} y={y - 8} fill="rgba(255,255,255,0.7)" fontSize="11">
+                        Strategic Re-balancing
+                      </text>
+                    );
+                  }}
+                />
+              )}
             </LineChart>
             </ResponsiveContainer>
           )}
@@ -585,56 +617,89 @@ export default function Page() {
 
   const data = useMemo<EquityPoint[]>(() => {
     const start = new Date('2025-03-01T00:00:00Z');
-    let equity = 5_000_000;
-    let peak = equity;
-    const out: EquityPoint[] = [];
-    function nz(i: number) {
-      const s = Math.sin((i + 1) * 12.9898) * 43758.5453;
-      const f = s - Math.floor(s);
-      return (f * 2 - 1) * 0.015;
+    const monthEnds: number[] = [];
+    const months: Date[] = [];
+    let e = 5_000_000;
+    // Build monthly endpoints with specified profile (Q1 18%; July -12.5% from peak; Nov -7.8%; Q4 ~12%/mo)
+    const monthlyRates: number[] = [];
+    for (let i = 0; i < 12; i++) {
+      if (i <= 2) monthlyRates.push(0.18);
+      else if (i === 3) monthlyRates.push(0.35); // Jun boost
+      else if (i === 4) monthlyRates.push(-0.125); // Jul drawdown
+      else if (i === 5) monthlyRates.push(0.6); // Aug strong rebound
+      else if (i === 6 || i === 7) monthlyRates.push(0.10); // Sep, Oct
+      else if (i === 8) monthlyRates.push(-0.078); // Nov drawdown
+      else monthlyRates.push(0.12); // Dec, Jan, Feb
     }
     for (let i = 0; i < 12; i++) {
-      const base =
-        i <= 2
-          ? 0.18
-          : i === 3
-          ? 0.5
-          : i === 4
-          ? -0.12
-          : i === 5
-          ? 0.48
-          : i <= 8
-          ? 0.1
-          : 0.06;
-      const noise = i === 4 ? 0 : nz(i);
-      const rate = base + noise;
-      equity = Math.round(equity * (1 + rate));
-      peak = Math.max(peak, equity);
       const d = new Date(start);
       d.setUTCMonth(start.getUTCMonth() + i);
-      const monthName = d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
-      const label = `${monthName} ${d.getUTCFullYear()}`;
-      const dd = (equity - peak) / peak;
-      out.push({ month: label, equity, growth: rate, dd });
+      months.push(d);
+      e = e * (1 + monthlyRates[i]);
+      monthEnds.push(e);
     }
-    const targetMin = 24_500_000;
-    const targetMax = 26_000_000;
-    const last = out[out.length - 1]?.equity ?? equity;
-    if (last < targetMin || last > targetMax) {
-      const mid = 25_300_000;
-      const factor = mid / last;
-      const tuned = out.map((p, idx) =>
-        idx === out.length - 1 ? { ...p, equity: Math.round(p.equity * factor) } : p
-      );
-      return tuned.map((p, i) => {
-        if (i === 0) return p;
-        const prev = tuned[i - 1];
-        const g = p.equity / prev.equity - 1;
-        const maxSoFar = Math.max(...tuned.slice(0, i + 1).map((x) => x.equity));
-        return { ...p, growth: g, dd: (p.equity - maxSoFar) / maxSoFar };
-      }) as EquityPoint[];
+    // Subdivide each month into 4 weekly points with micro-volatility (±2.5%)
+    const points: EquityPoint[] = [];
+    let peak = 5_000_000;
+    let monthStartEquity = 5_000_000;
+    const targetFinal = 5_000_000 * 4.89; // ~24.45M
+    for (let i = 0; i < 12; i++) {
+      const mStart = new Date(start);
+      mStart.setUTCMonth(start.getUTCMonth() + i);
+      const mEndEquity = monthEnds[i];
+      const steps = 5; // 4 weeklies + 1 month end anchor
+      const baseStep = Math.pow(mEndEquity / monthStartEquity, 1 / steps);
+      for (let s = 1; s <= 4; s++) {
+        const wDate = new Date(mStart);
+        wDate.setUTCDate(1 + s * 7);
+        // Deterministic pseudo-gaussian noise (sum of uniforms - 0.5)
+        const seed = Math.sin((i + 1) * 137.5 + s * 23.3) * 10000;
+        const u1 = seed - Math.floor(seed);
+        const u2 = (seed * 1.7) - Math.floor(seed * 1.7);
+        const gaussApprox = (u1 + u2 - 1) * 0.05; // approx ~[-0.05,0.05]
+        const noise = Math.max(-0.025, Math.min(0.025, gaussApprox));
+        const stepRet = baseStep * (1 + noise);
+        const next = Math.max(1, Math.round(monthStartEquity * stepRet));
+        peak = Math.max(peak, next);
+        const dd = (next - peak) / peak;
+        const monthKey = `${mStart.getUTCFullYear()}-${String(mStart.getUTCMonth() + 1).padStart(2, '0')}`;
+        const roi = next / monthStartEquity - 1;
+        const dateStr = `${wDate.getUTCFullYear()}-${String(wDate.getUTCMonth() + 1).padStart(2, '0')}-${String(wDate.getUTCDate()).padStart(2, '0')}`;
+        points.push({ date: dateStr, equity: next, roi, dd, monthKey });
+        monthStartEquity = next;
+      }
+      // Force month end anchor exactly
+      const anchorDate = new Date(mStart);
+      anchorDate.setUTCMonth(mStart.getUTCMonth() + 1);
+      anchorDate.setUTCDate(1);
+      const nextE = Math.round(mEndEquity);
+      peak = Math.max(peak, nextE);
+      const dd = (nextE - peak) / peak;
+      const monthKey = `${mStart.getUTCFullYear()}-${String(mStart.getUTCMonth() + 1).padStart(2, '0')}`;
+      const roi = nextE / (points.length > 0 ? points[points.length - 1].equity : 5_000_000) - 1;
+      const dateStr = `${anchorDate.getUTCFullYear()}-${String(anchorDate.getUTCMonth() + 1).padStart(2, '0')}-${String(anchorDate.getUTCDate()).padStart(2, '0')}`;
+      points.push({ date: dateStr, equity: nextE, roi, dd, monthKey });
+      monthStartEquity = nextE;
     }
-    return out;
+    // Adjust final point to hit 4.89x exactly (tiny correction on last step)
+    const lastIdx = points.length - 1;
+    const factor = targetFinal / points[lastIdx].equity;
+    if (Math.abs(factor - 1) > 0.001) {
+      const adjusted = Math.round(points[lastIdx].equity * factor);
+      const prev = points[lastIdx - 1]?.equity ?? adjusted;
+      points[lastIdx] = {
+        ...points[lastIdx],
+        equity: adjusted,
+        roi: adjusted / prev - 1,
+      };
+    }
+    // Recompute drawdown to be safe
+    peak = 5_000_000;
+    for (let i = 0; i < points.length; i++) {
+      peak = Math.max(peak, points[i].equity);
+      points[i] = { ...points[i], dd: (points[i].equity - peak) / peak };
+    }
+    return points;
   }, []);
 
   return (
