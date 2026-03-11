@@ -74,5 +74,8 @@ export const kv = {
   async smembers(key: string): Promise<string[]> {
     const [result] = (await pipeline<string[] | null>([['SMEMBERS', key]])) as (string[] | null)[];
     return result ?? [];
+  },
+  async del(key: string) {
+    await pipeline([['DEL', key]]);
   }
 };

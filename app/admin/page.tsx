@@ -162,6 +162,7 @@ export default function AdminPage() {
         </div>
         <FundraisingCard />
         <DepositPoolCard />
+        <DeleteUserCard />
       </div>
     </main>
   );
@@ -445,6 +446,59 @@ function AssignTester() {
         </button>
       </div>
       {result && <div className="mt-2 text-[11px] text-white/65">{result}</div>}
+    </div>
+  );
+}
+
+function DeleteUserCard() {
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  async function del() {
+    setMessage(null);
+    if (!email) return;
+    if (!confirm(`确认删除用户 ${email} 及其投资人数据？此操作不可恢复。`)) return;
+    setLoading(true);
+    const res = await fetch('/api/admin/users/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      setMessage(data?.error ?? '删除失败');
+    } else {
+      setMessage('已删除该用户（及其投资人数据）');
+    }
+    setLoading(false);
+  }
+  return (
+    <div className="rounded-3xl border border-red-900/30 bg-red-900/10 p-6 shadow-glow backdrop-blur">
+      <div className="mb-3 text-xs uppercase tracking-[0.18em] text-white/50">Danger Zone</div>
+      {message && (
+        <div className="mb-3 rounded-xl border border-red-800/40 bg-red-900/20 p-2 text-xs text-red-300">
+          {message}
+        </div>
+      )}
+      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+        <input
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          type="email"
+          placeholder="输入要删除的投资人邮箱"
+          className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-red-500 focus:shadow-[0_0_0_1px_rgba(239,68,68,0.35)]"
+        />
+        <button
+          onClick={del}
+          disabled={!email || loading}
+          className="inline-flex h-9 items-center justify-center rounded-2xl border border-red-600/60 bg-red-600/20 px-4 text-xs font-semibold text-red-200 transition hover:bg-red-600/30 disabled:opacity-60"
+        >
+          {loading ? '删除中…' : '删除用户'}
+        </button>
+      </div>
+      <div className="mt-2 text-[11px] text-white/55">
+        将删除：用户、投资人 Portfolio、专属充值地址绑定；地址不会回收至池（避免误复用）。
+      </div>
     </div>
   );
 }

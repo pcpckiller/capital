@@ -312,6 +312,37 @@ export async function listUsers(): Promise<Array<Omit<UserRecord, 'passwordHash'
   return arr;
 }
 
+export async function deleteUserByEmail(emailInput: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  const email = emailInput.toLowerCase();
+  if (kv.enabled) {
+    try {
+      const data = await kv.hgetall(`user:${email}`);
+      if (!data) {
+        // ensure removed from users:set anyway
+        await kv.srem('users:set', email);
+        return { ok: true };
+      }
+      const userId = data.id;
+      await kv.srem('users:set', email);
+      await kv.del(`user:${email}`);
+      if (userId) {
+        await kv.del(`portfolio:${userId}`);
+        await kv.del(`deposit:user:${userId}`);
+      }
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : 'kv error' };
+    }
+  }
+  const user = memUsers.get(email);
+  if (!user) return { ok: true };
+  memUsers.delete(email);
+  memPortfolios.delete(user.id);
+  memCurves.delete(user.id);
+  memUserDeposits.delete(user.id);
+  return { ok: true };
+}
+
 // Posts (Announcements)
 export async function upsertPost(input: {
   id?: string;
