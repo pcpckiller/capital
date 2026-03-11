@@ -37,7 +37,7 @@ type Portfolio = {
 
 type Network = 'USDT-ERC20' | 'USDT-TRC20';
 
-const USDT_ADDRESSES: Record<Network, string> = {
+const DEFAULT_USDT_ADDRESSES: Record<Network, string> = {
   'USDT-ERC20': '0xc76f21B6E119E2295DDC1E509fb31badfe0eA5F3',
   'USDT-TRC20': 'TCKHSD6B3mL79z7zq2srsiMErUk77GbHa2'
 };
@@ -50,6 +50,7 @@ export default function DashboardPage() {
   const [copied, setCopied] = useState(false);
   const [showRisk, setShowRisk] = useState(false);
   const [fundraising, setFundraising] = useState<{ progress: number; updatedAt: number } | null>(null);
+  const [depositAddr, setDepositAddr] = useState<{ erc20?: string; trc20?: string }>({});
 
 
   useEffect(() => {
@@ -90,6 +91,36 @@ export default function DashboardPage() {
     loadCurve();
   }, []);
 
+  useEffect(() => {
+    async function loadDeposit() {
+      try {
+        const res = await fetch('/api/deposit-address', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = (await res.json()) as { erc20?: string; trc20?: string };
+        setDepositAddr(data);
+      } catch {}
+    }
+    loadDeposit();
+  }, []);
+
+  useEffect(() => {
+    // 当会话准备好后再拉取一次，避免初次 401 导致未赋值
+    const userId = (session?.user as { id?: string } | undefined)?.id;
+    if (!userId) return;
+    let cancelled = false;
+    async function refetch() {
+      try {
+        const res = await fetch('/api/deposit-address', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = (await res.json()) as { erc20?: string; trc20?: string };
+        if (!cancelled) setDepositAddr(data);
+      } catch {}
+    }
+    refetch();
+    return () => {
+      cancelled = true;
+    };
+  }, [(session?.user as { id?: string } | undefined)?.id]);
 
 
   const chartData = useMemo(() => {
@@ -102,7 +133,10 @@ export default function DashboardPage() {
     }));
   }, [portfolio, curve]);
 
-  const address = USDT_ADDRESSES[network];
+  const address =
+    network === 'USDT-ERC20'
+      ? depositAddr.erc20 || DEFAULT_USDT_ADDRESSES['USDT-ERC20']
+      : depositAddr.trc20 || DEFAULT_USDT_ADDRESSES['USDT-TRC20'];
 
   async function handleCopy() {
     await navigator.clipboard.writeText(address);
