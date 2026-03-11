@@ -377,7 +377,16 @@ function PerformanceChart({ data }: { data: EquityPoint[] }) {
                 tick={{ fill: 'rgba(255,255,255,0.55)', fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
-                interval={0}
+                interval="preserveStartEnd"
+                minTickGap={18}
+                tickMargin={8}
+                tickFormatter={(label: string) => {
+                  const [mon, yr] = label.split(' ');
+                  if ((mon === 'Mar' && yr === '2025') || (yr === '2026' && (mon === 'Jan' || mon === 'Feb'))) {
+                    return label;
+                  }
+                  return mon;
+                }}
               />
               <YAxis
                 tickFormatter={(v) => `${Math.round(Number(v) / 1_000_000)}M`}
@@ -418,11 +427,19 @@ function PerformanceChart({ data }: { data: EquityPoint[] }) {
               <ReferenceDot
                 x="Jul 2025"
                 y={Math.max(...data.filter((d) => d.month === 'Jul 2025').map((d) => d.equity))}
-                r={4}
+                r={3}
                 fill="#10b981"
-                stroke="rgba(255,255,255,0.6)"
+                stroke="rgba(255,255,255,0.7)"
                 strokeWidth={1}
-                label="Strategic Adjustment / Drawdown"
+                label={({ viewBox }: { viewBox?: { x?: number; y?: number } }) => {
+                  const x = (viewBox?.x ?? 0) as number;
+                  const y = (viewBox?.y ?? 0) as number;
+                  return (
+                    <text x={x + 8} y={y - 8} fill="rgba(255,255,255,0.65)" fontSize="11">
+                      Strategic Adjustment / Drawdown
+                    </text>
+                  );
+                }}
               />
             </LineChart>
             </ResponsiveContainer>
