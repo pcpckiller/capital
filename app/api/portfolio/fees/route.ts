@@ -1,15 +1,14 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authConfig } from '@/lib/auth.server';
-import { getFeeBreakdownForUser } from '@/lib/mock-db';
 
+// Placeholder route to avoid build errors if older clients still call this path.
+// Returns an empty array and 200 status; safe to keep after fee system removal.
 export async function GET() {
   const session = await getServerSession(authConfig);
-  const userId = (session?.user as { id?: string } | undefined)?.id;
-  if (!userId) {
+  if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  const rows = await getFeeBreakdownForUser(userId);
-  return NextResponse.json(rows);
+  return NextResponse.json([]);
 }
 
