@@ -1,6 +1,6 @@
 'use client';
 
-import {
+import React, {
   FormEvent,
   useState,
 } from 'react';
@@ -54,7 +54,8 @@ export default function AdminPage() {
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-bg px-4 text-white">
-      <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
+      <div className="w-full max-w-xl space-y-5">
+        <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
         <div className="mb-3 flex items-center justify-between">
           <div className="text-xs uppercase tracking-[0.18em] text-white/50">Admin</div>
           <div className="flex gap-2">
@@ -158,7 +159,104 @@ export default function AdminPage() {
           </button>
           {message && <div className="mt-2 text-[11px] text-white/65">{message}</div>}
         </form>
+        </div>
+        <FundraisingCard />
       </div>
     </main>
+  );
+}
+
+function FundraisingCard() {
+  const [loading, setLoading] = useState(true);
+  const [progress, setProgress] = useState<number>(0);
+  const [updatedAt, setUpdatedAt] = useState<number>(0);
+  const [message, setMessage] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    async function load() {
+      setLoading(true);
+      const res = await fetch('/api/admin/fundraising', { cache: 'no-store' });
+      const data = await res.json().catch(() => null);
+      if (res.ok) {
+        setProgress(Number(data?.progress ?? 0));
+        setUpdatedAt(Number(data?.updatedAt ?? 0));
+      } else {
+        setMessage(data?.error ?? '加载失败');
+      }
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  async function save() {
+    setMessage(null);
+    const res = await fetch('/api/admin/fundraising', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ progress })
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      setMessage(data?.error ?? '保存失败');
+      return;
+    }
+    setProgress(Number(data?.progress ?? progress));
+    setUpdatedAt(Number(data?.updatedAt ?? Date.now()));
+  }
+
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="text-xs uppercase tracking-[0.18em] text-white/50">Fundraising</div>
+        {!loading && updatedAt > 0 && (
+          <div className="text-[11px] text-white/50">更新于 {new Date(updatedAt).toLocaleString()}</div>
+        )}
+      </div>
+      {message && <div className="mb-3 rounded-xl border border-red-800/40 bg-red-900/20 p-2 text-xs text-red-300">{message}</div>}
+      <div className="space-y-2">
+        <div className="h-3 w-full overflow-hidden rounded-full border border-white/10 bg-white/[0.06]">
+          <div className="h-full rounded-full bg-electric" style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} />
+        </div>
+        <div className="flex items-center gap-3">
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={progress}
+            onChange={(e) => setProgress(Number(e.target.value))}
+            className="flex-1"
+          />
+          <input
+            type="number"
+            min={0}
+            max={100}
+            value={progress}
+            onChange={(e) => setProgress(Number(e.target.value))}
+            className="w-20 rounded-2xl border border-white/10 bg-black/40 px-3 py-1 text-xs outline-none focus:border-electric focus:shadow-glow"
+          />
+          <span className="text-xs text-white/70">% </span>
+        </div>
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={save}
+            className="inline-flex h-9 items-center justify-center rounded-2xl bg-electric px-4 text-xs font-semibold text-white shadow-glowStrong hover:brightness-110"
+          >
+            保存
+          </button>
+          <button
+            onClick={() => setProgress(0)}
+            className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 text-xs font-semibold text-white/80 hover:bg-white/10"
+          >
+            清零
+          </button>
+          <button
+            onClick={() => setProgress(100)}
+            className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 text-xs font-semibold text-white/80 hover:bg-white/10"
+          >
+            拉满
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

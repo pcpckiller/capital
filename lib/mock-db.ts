@@ -34,6 +34,7 @@ export type PostRecord = {
 };
 const memPosts = new Map<string, PostRecord>();
 const memSlugToId = new Map<string, string>();
+let memFundraising = { progress: 0, updatedAt: 0 };
 
 function ensureDemoAdmin() {
   if (kv.enabled) return;
@@ -465,4 +466,29 @@ export async function seedDefaultPostsIfEmpty(): Promise<void> {
   for (const p of defaults) {
     await upsertPost({ slug: p.slug, title: p.title, body: p.body, published: true, publishedAt: p.publishedAt });
   }
+}
+
+export async function getFundraisingProgress(): Promise<{ progress: number; updatedAt: number }> {
+  if (kv.enabled) {
+    try {
+      const data = await kv.hgetall('fundraising:config');
+      const progress = Number(data?.progress ?? 0);
+      const updatedAt = Number(data?.updatedAt ?? 0);
+      return { progress, updatedAt };
+    } catch {}
+  }
+  return memFundraising;
+}
+
+export async function setFundraisingProgress(progress: number): Promise<{ progress: number; updatedAt: number }> {
+  const p = Math.max(0, Math.min(100, Math.round(progress)));
+  const updatedAt = Date.now();
+  if (kv.enabled) {
+    try {
+      await kv.hmset('fundraising:config', { progress: String(p), updatedAt: String(updatedAt) });
+      return { progress: p, updatedAt };
+    } catch {}
+  }
+  memFundraising = { progress: p, updatedAt };
+  return memFundraising;
 }

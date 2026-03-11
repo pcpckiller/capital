@@ -49,6 +49,7 @@ export default function DashboardPage() {
   const [network, setNetwork] = useState<Network>('USDT-ERC20');
   const [copied, setCopied] = useState(false);
   const [showRisk, setShowRisk] = useState(false);
+  const [fundraising, setFundraising] = useState<{ progress: number; updatedAt: number } | null>(null);
 
   useEffect(() => {
     const key = 'cc-risk-accepted';
@@ -56,6 +57,16 @@ export default function DashboardPage() {
     if (!localStorage.getItem(key)) {
       setShowRisk(true);
     }
+  }, []);
+
+  useEffect(() => {
+    async function loadFundraising() {
+      const res = await fetch('/api/fundraising', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = (await res.json()) as { progress: number; updatedAt: number };
+      setFundraising(data);
+    }
+    loadFundraising();
   }, []);
 
   useEffect(() => {
@@ -175,7 +186,23 @@ export default function DashboardPage() {
               </p>
             )}
           </div>
-
+          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur">
+            <div className="flex items-center justify-between">
+              <div className="text-xs uppercase tracking-widest text-white/60">Fundraising Progress</div>
+              {fundraising && (
+                <div className="text-[11px] text-white/50">更新于 {new Date(fundraising.updatedAt || Date.now()).toLocaleString()}</div>
+              )}
+            </div>
+            <div className="mt-3 h-3 w-full overflow-hidden rounded-full border border-white/10 bg-white/[0.06]">
+              <div
+                className="h-full rounded-full bg-electric transition-all"
+                style={{ width: `${Math.max(0, Math.min(100, fundraising?.progress ?? 0))}%` }}
+              />
+            </div>
+            <div className="mt-2 text-right text-xs text-white/70">
+              {Math.max(0, Math.min(100, fundraising?.progress ?? 0))}%
+            </div>
+          </div>
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur">
             <div className="mb-3 flex items-center justify-between">
               <div>
