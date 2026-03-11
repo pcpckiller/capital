@@ -126,6 +126,12 @@ export default function DashboardPage() {
   const chartData = useMemo(() => {
     if (curve.length > 0) return curve;
     if (!portfolio) return [];
+    if (!Number.isFinite(portfolio.nav) || portfolio.nav <= 1.0000001) {
+      return Array.from({ length: 12 }).map((_, i) => ({
+        label: `M${i + 1}`,
+        value: 1
+      }));
+    }
     const base = Math.max(portfolio.nav - 0.2, 0.8);
     return Array.from({ length: 12 }).map((_, i) => ({
       label: `M${i + 1}`,
