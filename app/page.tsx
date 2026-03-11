@@ -22,7 +22,17 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Area, CartesianGrid, Line, LineChart, ReferenceDot, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import {
+  Area,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ReferenceDot,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
 type EquityPoint = { date: string; equity: number; roi: number; dd: number; monthKey: string };
 type Lang = 'en' | 'zh';
@@ -365,7 +375,7 @@ function PerformanceChart({ data }: { data: EquityPoint[] }) {
             <div className="text-xs text-white/60">12-month equity curve</div>
           </div>
           <div className="text-xs text-white/60">
-            Start $5M → <span className="text-white/85">{((data.at(-1)?.equity ?? 0) / 1_000_000).toFixed(2)}M</span>
+            Start $3M → <span className="text-white/85">{((data.at(-1)?.equity ?? 0) / 1_000_000).toFixed(2)}M</span>
           </div>
         </div>
         <div className="h-56 w-full">
@@ -619,7 +629,7 @@ export default function Page() {
     const start = new Date('2025-03-01T00:00:00Z');
     const monthEnds: number[] = [];
     const months: Date[] = [];
-    let e = 5_000_000;
+    let e = 3_000_000;
     // Build monthly endpoints with specified profile (Q1 18%; July -12.5% from peak; Nov -7.8%; Q4 ~12%/mo)
     const monthlyRates: number[] = [];
     for (let i = 0; i < 12; i++) {
@@ -640,9 +650,9 @@ export default function Page() {
     }
     // Subdivide each month into 4 weekly points with micro-volatility (±2.5%)
     const points: EquityPoint[] = [];
-    let peak = 5_000_000;
-    let monthStartEquity = 5_000_000;
-    const targetFinal = 5_000_000 * 4.89; // ~24.45M
+    let peak = 3_000_000;
+    let monthStartEquity = 3_000_000;
+    const targetFinal = 15_100_000; // chart target ~15.1M
     for (let i = 0; i < 12; i++) {
       const mStart = new Date(start);
       mStart.setUTCMonth(start.getUTCMonth() + i);
@@ -676,7 +686,7 @@ export default function Page() {
       peak = Math.max(peak, nextE);
       const dd = (nextE - peak) / peak;
       const monthKey = `${mStart.getUTCFullYear()}-${String(mStart.getUTCMonth() + 1).padStart(2, '0')}`;
-      const roi = nextE / (points.length > 0 ? points[points.length - 1].equity : 5_000_000) - 1;
+      const roi = nextE / (points.length > 0 ? points[points.length - 1].equity : 3_000_000) - 1;
       const dateStr = `${anchorDate.getUTCFullYear()}-${String(anchorDate.getUTCMonth() + 1).padStart(2, '0')}-${String(anchorDate.getUTCDate()).padStart(2, '0')}`;
       points.push({ date: dateStr, equity: nextE, roi, dd, monthKey });
       monthStartEquity = nextE;
@@ -694,7 +704,7 @@ export default function Page() {
       };
     }
     // Recompute drawdown to be safe
-    peak = 5_000_000;
+    peak = 3_000_000;
     for (let i = 0; i < points.length; i++) {
       peak = Math.max(peak, points[i].equity);
       points[i] = { ...points[i], dd: (points[i].equity - peak) / peak };
