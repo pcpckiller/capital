@@ -161,6 +161,7 @@ export default function AdminPage() {
         </form>
         </div>
         <FundraisingCard />
+        <DepositPoolCard />
       </div>
     </main>
   );
@@ -262,6 +263,79 @@ function FundraisingCard() {
             拉满
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function DepositPoolCard() {
+  const [erc20, setErc20] = useState('');
+  const [trc20, setTrc20] = useState('');
+  const [message, setMessage] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    setMessage(null);
+    setSaving(true);
+    const erc20Arr = erc20
+      .split(/\r?\n|,|;/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const trc20Arr = trc20
+      .split(/\r?\n|,|;/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const res = await fetch('/api/admin/deposit-addresses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ erc20: erc20Arr, trc20: trc20Arr })
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      setMessage(data?.error ?? '保存失败');
+    } else {
+      setMessage('地址池已更新');
+    }
+    setSaving(false);
+  }
+
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="text-xs uppercase tracking-[0.18em] text-white/50">Deposit Address Pools</div>
+      </div>
+      {message && <div className="mb-3 rounded-xl border border-amber-800/40 bg-amber-900/20 p-2 text-xs text-amber-200">{message}</div>}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1">
+          <div className="text-[11px] text-white/60">ERC20 地址（每行一个）</div>
+          <textarea
+            value={erc20}
+            onChange={(e) => setErc20(e.target.value)}
+            rows={8}
+            className="w-full rounded-2xl border border-white/10 bg-black/40 p-3 text-xs outline-none focus:border-electric focus:shadow-glow"
+            placeholder="0x1234...\n0xABCD..."
+          />
+        </div>
+        <div className="space-y-1">
+          <div className="text-[11px] text-white/60">TRC20 地址（每行一个）</div>
+          <textarea
+            value={trc20}
+            onChange={(e) => setTrc20(e.target.value)}
+            rows={8}
+            className="w-full rounded-2xl border border-white/10 bg-black/40 p-3 text-xs outline-none focus:border-electric focus:shadow-glow"
+            placeholder="TXXXX...\nTYYYY..."
+          />
+        </div>
+      </div>
+      <div className="mt-3 flex gap-2">
+        <button
+          onClick={save}
+          disabled={saving}
+          className="inline-flex h-9 items-center justify-center rounded-2xl bg-electric px-4 text-xs font-semibold text-white shadow-glowStrong hover:brightness-110 disabled:opacity-60"
+        >
+          保存地址池
+        </button>
+        <div className="self-center text-[11px] text-white/55">将按顺序为新注册用户自动分配</div>
       </div>
     </div>
   );

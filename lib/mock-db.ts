@@ -22,6 +22,11 @@ const memUsers = new Map<string, UserRecord>();
 const memPortfolios = new Map<string, PortfolioRecord>();
 type CurvePoint = { label: string; value: number };
 const memCurves = new Map<string, CurvePoint[]>();
+
+type DepositAddresses = { erc20?: string; trc20?: string };
+const memDepositPools: { erc20: string[]; trc20: string[] } = { erc20: [], trc20: [] };
+const memDepositIdx: { erc20: number; trc20: number } = { erc20: 0, trc20: 0 };
+const memUserDeposits = new Map<string, DepositAddresses>(); // key: userId
 export type PostRecord = {
   id: string;
   slug: string;
@@ -80,6 +85,12 @@ export async function createUser(input: {
         nav: '1',
         lockupEnd: new Date().toISOString()
       });
+      // Best-effort assign deposit addresses if pool exists
+      try {
+        await assignDepositAddresses(id);
+      } catch {
+        // ignore
+      }
       return {
         id,
         email,
@@ -104,6 +115,12 @@ export async function createUser(input: {
     nav: 1,
     lockupEnd: new Date().toISOString()
   });
+  // Memory assignment if pools loaded
+  try {
+    await assignDepositAddresses(id);
+  } catch {
+    // ignore
+  }
   return user;
 }
 
@@ -494,4 +511,89 @@ export async function setFundraisingProgress(progress: number): Promise<{ progre
   }
   memFundraising = { progress: p, updatedAt };
   return memFundraising;
+}
+
+// Deposit address pool management
+export async function setDepositAddressPools(pools: { erc20?: string[]; trc20?: string[] }) {
+  const clean = {
+    erc20: (pools.erc20 ?? []).map((s) => s.trim()).filter(Boolean),
+    trc20: (pools.trc20 ?? []).map((s) => s.trim()).filter(Boolean)
+  };
+  if (kv.enabled) {
+    try {
+      await kv.hmset('deposit:pools', {
+        erc20: JSON.stringify(clean.erc20),
+        trc20: JSON.stringify(clean.trc20)
+      });
+      // Reset indices to 0 when pool changes
+      await kv.hmset('deposit:idx', { erc20: '0', trc20: '0' });
+    } catch {
+      // fall through to memory
+    }
+  }
+  memDepositPools.erc20 = clean.erc20;
+  memDepositPools.trc20 = clean.trc20;
+  memDepositIdx.erc20 = 0;
+  memDepositIdx.trc20 = 0;
+}
+
+export async function getDepositAddresses(userId: string): Promise<DepositAddresses | null> {
+  if (kv.enabled) {
+    try {
+      const data = await kv.hgetall(`deposit:user:${userId}`);
+      if (data) {
+        return {
+          erc20: data.erc20 || undefined,
+          trc20: data.trc20 || undefined
+        };
+      }
+    } catch {
+      // fall through
+    }
+  }
+  return memUserDeposits.get(userId) ?? null;
+}
+
+export async function assignDepositAddresses(userId: string): Promise<DepositAddresses> {
+  // If already assigned, return
+  const existing = await getDepositAddresses(userId);
+  if (existing && (existing.erc20 || existing.trc20)) return existing;
+
+  if (kv.enabled) {
+    try {
+      const pools = await kv.hgetall('deposit:pools');
+      const idxMap = (await kv.hgetall('deposit:idx')) ?? {};
+      const ercPool = pools?.erc20 ? (JSON.parse(pools.erc20) as string[]) : [];
+      const trcPool = pools?.trc20 ? (JSON.parse(pools.trc20) as string[]) : [];
+      let ercIdx = Number(idxMap.erc20 ?? '0') || 0;
+      let trcIdx = Number(idxMap.trc20 ?? '0') || 0;
+
+      const erc20 = ercPool[ercIdx] ?? undefined;
+      const trc20 = trcPool[trcIdx] ?? undefined;
+      // Advance indices if address exists
+      if (erc20) ercIdx = (ercIdx + 1) % Math.max(ercPool.length, 1);
+      if (trc20) trcIdx = (trcIdx + 1) % Math.max(trcPool.length, 1);
+
+      await kv.hmset(`deposit:user:${userId}`, {
+        erc20: erc20 ?? '',
+        trc20: trc20 ?? ''
+      });
+      await kv.hmset('deposit:idx', {
+        erc20: String(ercIdx),
+        trc20: String(trcIdx)
+      });
+      return { erc20, trc20 };
+    } catch {
+      // fall through to memory
+    }
+  }
+
+  // Memory fallback
+  const erc20 = memDepositPools.erc20[memDepositIdx.erc20] ?? undefined;
+  const trc20 = memDepositPools.trc20[memDepositIdx.trc20] ?? undefined;
+  if (erc20) memDepositIdx.erc20 = (memDepositIdx.erc20 + 1) % Math.max(memDepositPools.erc20.length, 1);
+  if (trc20) memDepositIdx.trc20 = (memDepositIdx.trc20 + 1) % Math.max(memDepositPools.trc20.length, 1);
+  const out: DepositAddresses = { erc20, trc20 };
+  memUserDeposits.set(userId, out);
+  return out;
 }
