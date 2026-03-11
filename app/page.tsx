@@ -27,13 +27,14 @@ import {
   CartesianGrid,
   Line,
   LineChart,
+  ReferenceDot,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
 
-type EquityPoint = { month: string; equity: number; growth?: number };
+type EquityPoint = { month: string; equity: number; growth: number; dd: number };
 type Lang = 'en' | 'zh';
 
 const content = {
@@ -387,20 +388,22 @@ function PerformanceChart({ data }: { data: EquityPoint[] }) {
                 domain={['dataMin - 500000', 'dataMax + 500000']}
               />
               <Tooltip
-                cursor={{ stroke: 'rgba(0,112,243,0.35)' }}
+                cursor={{ stroke: 'rgba(16,185,129,0.35)' }}
                 contentStyle={{ background: 'rgba(10,10,10,0.9)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 14, boxShadow: '0 18px 60px rgba(0,0,0,0.55)', color: 'rgba(255,255,255,0.9)' }}
                 labelStyle={{ color: 'rgba(255,255,255,0.65)' }}
-                formatter={(value: unknown, _name: unknown, _props: unknown) => {
-                  const v = Number(value || 0);
-                  return [`$${v.toLocaleString()}`, 'Net Value'];
-                }}
-                labelFormatter={(label: unknown, payload: unknown) => {
-                  const arr = (payload as Array<{ payload?: unknown }>) || [];
-                  if (!arr[0]?.payload) return '';
-                  const p = arr[0].payload as { growth?: number; month?: string };
-                  const g = (p.growth ?? 0) * 100;
-                  const monthLabel = p.month ?? String(label ?? '');
-                  return `${monthLabel} | Growth: ${g > 0 ? '+' : ''}${g.toFixed(0)}%`;
+                content={({ label, payload }) => {
+                  if (!payload || payload.length === 0) return null;
+                  const p = payload[0].payload as EquityPoint;
+                  const g = p.growth * 100;
+                  const dd = p.dd * 100;
+                  return (
+                    <div style={{ padding: 10 }}>
+                      <div style={{ fontSize: 12, opacity: 0.8 }}>{label}</div>
+                      <div style={{ fontSize: 12, marginTop: 4 }}>Net Value: ${p.equity.toLocaleString()}</div>
+                      <div style={{ fontSize: 12 }}>Growth: {g >= 0 ? '+' : ''}{g.toFixed(1)}%</div>
+                      <div style={{ fontSize: 12 }}>Drawdown: {dd.toFixed(1)}%</div>
+                    </div>
+                  );
                 }}
               />
               <Area type="monotone" dataKey="equity" stroke="none" fill="url(#ccAreaFill)" />
@@ -411,6 +414,15 @@ function PerformanceChart({ data }: { data: EquityPoint[] }) {
                 strokeWidth={2.5}
                 dot={false}
                 activeDot={{ r: 5, fill: '#10b981', stroke: 'rgba(255,255,255,0.5)', strokeWidth: 1 }}
+              />
+              <ReferenceDot
+                x="Jul 2025"
+                y={Math.max(...data.filter((d) => d.month === 'Jul 2025').map((d) => d.equity))}
+                r={4}
+                fill="#10b981"
+                stroke="rgba(255,255,255,0.6)"
+                strokeWidth={1}
+                label="Strategic Adjustment / Drawdown"
               />
             </LineChart>
             </ResponsiveContainer>
@@ -557,15 +569,53 @@ export default function Page() {
   const data = useMemo<EquityPoint[]>(() => {
     const start = new Date('2025-03-01T00:00:00Z');
     let equity = 5_000_000;
+    let peak = equity;
     const out: EquityPoint[] = [];
-    for (let i = 1; i <= 12; i++) {
-      const rate = i <= 4 ? 0.2 : i <= 8 ? 0.15 : 0.1;
-      equity = equity * (1 + rate);
+    function nz(i: number) {
+      const s = Math.sin((i + 1) * 12.9898) * 43758.5453;
+      const f = s - Math.floor(s);
+      return (f * 2 - 1) * 0.015;
+    }
+    for (let i = 0; i < 12; i++) {
+      const base =
+        i <= 2
+          ? 0.18
+          : i === 3
+          ? 0.5
+          : i === 4
+          ? -0.12
+          : i === 5
+          ? 0.48
+          : i <= 8
+          ? 0.1
+          : 0.06;
+      const noise = i === 4 ? 0 : nz(i);
+      const rate = base + noise;
+      equity = Math.round(equity * (1 + rate));
+      peak = Math.max(peak, equity);
       const d = new Date(start);
       d.setUTCMonth(start.getUTCMonth() + i);
       const monthName = d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
       const label = `${monthName} ${d.getUTCFullYear()}`;
-      out.push({ month: label, equity: Math.round(equity), growth: rate });
+      const dd = (equity - peak) / peak;
+      out.push({ month: label, equity, growth: rate, dd });
+    }
+    const targetMin = 24_500_000;
+    const targetMax = 26_000_000;
+    const last = out[out.length - 1]?.equity ?? equity;
+    if (last < targetMin || last > targetMax) {
+      const mid = 25_300_000;
+      const factor = mid / last;
+      const tuned = out.map((p, idx) =>
+        idx === out.length - 1 ? { ...p, equity: Math.round(p.equity * factor) } : p
+      );
+      return tuned.map((p, i) => {
+        if (i === 0) return p;
+        const prev = tuned[i - 1];
+        const g = p.equity / prev.equity - 1;
+        const maxSoFar = Math.max(...tuned.slice(0, i + 1).map((x) => x.equity));
+        return { ...p, growth: g, dd: (p.equity - maxSoFar) / maxSoFar };
+      }) as EquityPoint[];
     }
     return out;
   }, []);
