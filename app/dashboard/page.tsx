@@ -297,10 +297,21 @@ export default function DashboardPage() {
               <div className="mt-2 grid grid-cols-[minmax(0,1fr)_120px] gap-3">
                 <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/5 p-3 text-[11px] text-yellow-100">
                   <div className="font-semibold text-xs">重要提示 / Warning</div>
-                  <p className="mt-1">
-                    请仅向上述地址**充值 USDT**。单笔最低充值金额为{' '}
-                    <span className="font-semibold">10,000 USDT</span>，其他资产将无法找回。
+                  <p className="mt-1 leading-relaxed">
+                    请仅向上述地址<span className="font-semibold">充值 USDT</span>。单笔最低充值金额为{' '}
+                    <span className="font-semibold">10,000 USDT</span>，为确保财务分账准确，请以<span className="font-semibold">整数金额</span>投入。
                   </p>
+                  <div className="mt-2 h-px w-full bg-yellow-500/20" />
+                  <div className="mt-2 space-y-1 leading-relaxed">
+                    <div>
+                      管理费 / Management Fee：<span className="font-semibold">0.5% / Year</span>{' '}
+                      <span className="text-yellow-200/90">(Accrued Monthly)</span>
+                    </div>
+                    <div>
+                      业绩报酬 / Performance Fee：<span className="font-semibold">20% of Profits</span>{' '}
+                      <span className="text-yellow-200/90">(High Water Mark applied)</span>
+                    </div>
+                  </div>
                 </div>
                 <div className="flex items-center justify-center rounded-2xl border border-white/15 bg-black/60 p-2">
                   {!showRisk && (
@@ -321,7 +332,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="mt-3 text-[10px] text-white/55">
-              充值到账后，资金将被分配至策略组合对应的经纪子账户，期间可能存在链上确认与风控检查延迟。
+              充值到账后，资金将被分配至策略组合对应的经纪子账户。净值（NAV）将于每日 00:00 (UTC+8) 更新。期间可能存在链上确认与风控检查延迟。
             </div>
           </div>
 
