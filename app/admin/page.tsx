@@ -214,8 +214,14 @@ function FundraisingCard() {
       </div>
       {message && <div className="mb-3 rounded-xl border border-red-800/40 bg-red-900/20 p-2 text-xs text-red-300">{message}</div>}
       <div className="space-y-2">
-        <div className="h-3 w-full overflow-hidden rounded-full border border-white/10 bg-white/[0.06]">
-          <div className="h-full rounded-full bg-electric" style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} />
+        <div className="h-4 w-full overflow-hidden rounded-full border border-white/10 bg-white/[0.08]">
+          <div
+            className="h-full rounded-full shadow-glowStrong"
+            style={{
+              width: `${Math.max(0, Math.min(100, progress))}%`,
+              background: 'linear-gradient(90deg, #0070f3 0%, #7c3aed 60%, #22c55e 100%)'
+            }}
+          />
         </div>
         <div className="flex items-center gap-3">
           <input

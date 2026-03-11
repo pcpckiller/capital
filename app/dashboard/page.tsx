@@ -193,10 +193,13 @@ export default function DashboardPage() {
                 <div className="text-[11px] text-white/50">更新于 {new Date(fundraising.updatedAt || Date.now()).toLocaleString()}</div>
               )}
             </div>
-            <div className="mt-3 h-3 w-full overflow-hidden rounded-full border border-white/10 bg-white/[0.06]">
+            <div className="mt-3 h-4 w-full overflow-hidden rounded-full border border-white/10 bg-white/[0.08]">
               <div
-                className="h-full rounded-full bg-electric transition-all"
-                style={{ width: `${Math.max(0, Math.min(100, fundraising?.progress ?? 0))}%` }}
+                className="h-full rounded-full shadow-glowStrong transition-all"
+                style={{
+                  width: `${Math.max(0, Math.min(100, fundraising?.progress ?? 0))}%`,
+                  background: 'linear-gradient(90deg, #0070f3 0%, #7c3aed 60%, #22c55e 100%)'
+                }}
               />
             </div>
             <div className="mt-2 text-right text-xs text-white/70">
