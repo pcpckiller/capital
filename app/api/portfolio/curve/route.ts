@@ -1,7 +1,14 @@
 import { getServerSession } from 'next-auth';
-import { authConfig } from '@/lib/auth.server';
-import { getCurveByUserId, getPortfolioByUserId } from '@/lib/mock-db';
 import { NextResponse } from 'next/server';
+
+import { authConfig } from '@/lib/auth.server';
+import {
+  getCurveByUserId,
+  getPortfolioByUserId,
+} from '@/lib/mock-db';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const session = await getServerSession(authConfig);
@@ -17,6 +24,13 @@ export async function GET() {
 
   const portfolio = await getPortfolioByUserId(userId);
   const nav = portfolio?.nav ?? 1;
+  if (!Number.isFinite(nav) || nav <= 1.0000001) {
+    const flat = Array.from({ length: 12 }).map((_, i) => ({
+      label: `M${i + 1}`,
+      value: 1
+    }));
+    return NextResponse.json(flat);
+  }
   const base = Math.max(nav - 0.2, 0.8);
   const fallback = Array.from({ length: 12 }).map((_, i) => ({
     label: `M${i + 1}`,
@@ -24,4 +38,3 @@ export async function GET() {
   }));
   return NextResponse.json(fallback);
 }
-
