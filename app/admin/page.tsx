@@ -274,6 +274,8 @@ function DepositPoolCard() {
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [kvStatus, setKvStatus] = useState<'unknown' | 'enabled' | 'disabled'>('unknown');
+  const [counts, setCounts] = useState<{ erc20: number; trc20: number }>({ erc20: 0, trc20: 0 });
+  const [idx, setIdx] = useState<{ erc20: number; trc20: number }>({ erc20: 0, trc20: 0 });
 
   React.useEffect(() => {
     async function probe() {
@@ -286,6 +288,25 @@ function DepositPoolCard() {
       }
     }
     probe();
+    async function loadPools() {
+      try {
+        const res = await fetch('/api/admin/deposit-addresses', { cache: 'no-store' });
+        const data = await res.json().catch(() => null);
+        if (res.ok && data) {
+          const eArr = Array.isArray(data.erc20) ? data.erc20 : [];
+          const tArr = Array.isArray(data.trc20) ? data.trc20 : [];
+          setCounts({ erc20: eArr.length, trc20: tArr.length });
+          setIdx({
+            erc20: Number(data?.idx?.erc20 ?? 0),
+            trc20: Number(data?.idx?.trc20 ?? 0)
+          });
+          // 仅当文本框为空时预填，避免覆盖正在编辑的内容
+          setErc20((prev) => (prev ? prev : eArr.join('\n')));
+          setTrc20((prev) => (prev ? prev : tArr.join('\n')));
+        }
+      } catch {}
+    }
+    loadPools();
   }, []);
 
   async function save() {
@@ -309,6 +330,15 @@ function DepositPoolCard() {
       setMessage(data?.error ?? '保存失败');
     } else {
       setMessage(data?.persistent ? '地址池已更新（已持久化）' : '地址池已更新（仅当前实例内有效，建议配置 KV）');
+      // 保存成功后刷新一次统计与指针
+      try {
+        const r2 = await fetch('/api/admin/deposit-addresses', { cache: 'no-store' });
+        const d2 = await r2.json().catch(() => null);
+        if (r2.ok && d2) {
+          setCounts({ erc20: (d2.erc20 || []).length, trc20: (d2.trc20 || []).length });
+          setIdx({ erc20: Number(d2?.idx?.erc20 ?? 0), trc20: Number(d2?.idx?.trc20 ?? 0) });
+        }
+      } catch {}
     }
     setSaving(false);
   }
@@ -328,6 +358,9 @@ function DepositPoolCard() {
         当前存储：
         <span className={kvStatus === 'enabled' ? 'ml-1 rounded-md bg-emerald-400/10 px-1.5 py-0.5 text-emerald-300' : 'ml-1 rounded-md bg-amber-400/10 px-1.5 py-0.5 text-amber-200'}>
           {kvStatus === 'enabled' ? '持久化至 KV（跨实例可见）' : '仅当前实例内存（建议配置 KV）'}
+        </span>
+        <span className="ml-3 text-white/50">
+          当前计数：ERC20 {counts.erc20}（指针 {idx.erc20}） / TRC20 {counts.trc20}（指针 {idx.trc20}）
         </span>
       </div>
       {message && <div className="mb-3 rounded-xl border border-amber-800/40 bg-amber-900/20 p-2 text-xs text-amber-200">{message}</div>}

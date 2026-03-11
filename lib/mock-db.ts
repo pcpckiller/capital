@@ -597,3 +597,29 @@ export async function assignDepositAddresses(userId: string): Promise<DepositAdd
   memUserDeposits.set(userId, out);
   return out;
 }
+
+export async function getDepositAddressPools(): Promise<{ erc20: string[]; trc20: string[]; idx: { erc20: number; trc20: number } }> {
+  if (kv.enabled) {
+    try {
+      const pools = await kv.hgetall('deposit:pools');
+      const idxMap = (await kv.hgetall('deposit:idx')) ?? {};
+      const erc = pools?.erc20 ? (JSON.parse(pools.erc20) as string[]) : [];
+      const trc = pools?.trc20 ? (JSON.parse(pools.trc20) as string[]) : [];
+      return {
+        erc20: Array.isArray(erc) ? erc : [],
+        trc20: Array.isArray(trc) ? trc : [],
+        idx: {
+          erc20: Number(idxMap.erc20 ?? '0') || 0,
+          trc20: Number(idxMap.trc20 ?? '0') || 0
+        }
+      };
+    } catch {
+      // fall through
+    }
+  }
+  return {
+    erc20: memDepositPools.erc20.slice(),
+    trc20: memDepositPools.trc20.slice(),
+    idx: { ...memDepositIdx }
+  };
+}

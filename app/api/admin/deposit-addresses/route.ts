@@ -3,7 +3,10 @@ import { NextResponse } from 'next/server';
 
 import { authConfig } from '@/lib/auth.server';
 import { kv } from '@/lib/kv';
-import { setDepositAddressPools } from '@/lib/mock-db';
+import {
+  getDepositAddressPools,
+  setDepositAddressPools,
+} from '@/lib/mock-db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -32,4 +35,9 @@ export async function POST(request: Request) {
     }
   }
   return NextResponse.json({ ok: true, persistent, enabled: kv.enabled });
+}
+
+export async function GET() {
+  const pools = await getDepositAddressPools();
+  return NextResponse.json(pools);
 }
