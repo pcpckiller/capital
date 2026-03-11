@@ -58,11 +58,11 @@ const content = {
       cardTitle: 'Phase I Fund Average Monthly Return',
       cardMetricLabel: 'Avg / month',
       cardCopy:
-        'Compress chaotic market noise into tradable mathematical structures via ML and micro-latency execution.',
+        'Disciplined execution and liquidity-aware scaling deliver compounding cadence calibrated to ~5× capital growth over a full year under stable conditions.',
       metrics: [
-        { label: 'Sharpe Ratio', value: '3.8' },
-        { label: 'Max Drawdown', value: '< 4.5%' },
-        { label: 'Win Rate', value: '72%' }
+        { label: 'Sharpe Ratio', value: '2.7' },
+        { label: 'Max Drawdown', value: '< 12.5%' },
+        { label: 'Win Rate', value: '68%' }
       ]
     },
     theAlpha: {
@@ -148,11 +148,11 @@ const content = {
       sub: '放大信号，抑制噪声。',
       cardTitle: '第⼀期基金平均月化收益率',
       cardMetricLabel: '平均每月',
-      cardCopy: '以机器学习与微秒级执行，把复杂市场噪声压缩成可交易的数学结构。',
+      cardCopy: '在严格风控与流动性约束下进行规模扩张与执行优化，使收益节奏更可复用，逻辑上支撑全年约 5× 的资金增长（在稳健市况下）。',
       metrics: [
-        { label: '夏普比率', value: '3.8' },
-        { label: '最大回撤', value: '< 4.5%' },
-        { label: '胜率', value: '72%' }
+        { label: '夏普比率', value: '2.7' },
+        { label: '最大回撤', value: '< 12.5%' },
+        { label: '胜率', value: '68%' }
       ]
     },
     theAlpha: {
@@ -816,7 +816,7 @@ export default function Page() {
                     {content[lang].alphaHighlight.cardTitle}
                   </div>
                   <div className="mt-2 flex items-end gap-3">
-                    <div className="text-5xl font-semibold tracking-tight text-white">+20.4%</div>
+                  <div className="text-5xl font-semibold tracking-tight text-white">+14.5%</div>
                     <div className="pb-2 text-xs text-white/60">
                       {content[lang].alphaHighlight.cardMetricLabel}
                     </div>
