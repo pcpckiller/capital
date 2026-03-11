@@ -1008,7 +1008,7 @@ export default function Page() {
               { name: 'Binance', logo: '/partners/binance.svg?v=2' },
               { name: 'OKX', logo: '/partners/okx.svg?v=2' },
               { name: 'Bybit', logo: '/partners/bybit.svg?v=2' },
-              { name: 'Peak XV Partners', logo: '/partners/peakxv.svg?v=2' },
+              { name: 'Peak XV Partners', logo: '/partners/peakxv.svg?v=3' },
               { name: 'EC Markets', logo: '/partners/ecmarkets.svg?v=2' },
               { name: 'Hyperliquid', logo: '/partners/hyperliquid.svg?v=1' }
             ].map((p) => (
