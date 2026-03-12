@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   title: 'Cartoon Capital — Where Logic Meets Alpha',
   description:
     'Cartoon Capital leverages proprietary ML models and high-frequency execution to deliver market-neutral returns.',
-  metadataBase: new URL('https://cartoon.capital'),
+  // Use app/icon.(png|tsx|svg) & app/apple-icon.* for favicons to avoid absolute URL issues
   openGraph: {
     title: 'Cartoon Capital',
     description: 'Where Logic Meets Alpha.',
