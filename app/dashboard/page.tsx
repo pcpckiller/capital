@@ -56,6 +56,7 @@ export default function DashboardPage() {
   const [wdAddress, setWdAddress] = useState('');
   const [wdMsg, setWdMsg] = useState<string | null>(null);
   const [wdRows, setWdRows] = useState<Array<{ id: string; amount: number; address: string; status: 'pending' | 'approved' | 'rejected'; timestamp: number }>>([]);
+  const [txRows, setTxRows] = useState<Array<{ id: string; type: 'deposit' | 'withdrawal'; amount: number; address: string; hash?: string; network?: string; timestamp: number }>>([]);
 
 
   useEffect(() => {
@@ -66,6 +67,17 @@ export default function DashboardPage() {
     }
   }, []);
 
+  useEffect(() => {
+    async function loadMyTransactions() {
+      try {
+        const res = await fetch('/api/user/transactions', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = (await res.json()) as Array<{ id: string; type: 'deposit' | 'withdrawal'; amount: number; address: string; hash?: string; network?: string; timestamp: number }>;
+        setTxRows(Array.isArray(data) ? data : []);
+      } catch {}
+    }
+    loadMyTransactions();
+  }, []);
   useEffect(() => {
     async function loadFundraising() {
       const res = await fetch('/api/fundraising', { cache: 'no-store' });
@@ -401,7 +413,6 @@ export default function DashboardPage() {
           </div>
 
 
-              <div className="mt-2 grid grid-cols-[minmax(0,1fr)_120px] gap-3">
                 <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/5 p-3 text-[11px] text-yellow-100">
                   <div className="font-semibold text-xs">重要提示 / Warning</div>
                   <p className="mt-1 leading-relaxed">
@@ -433,6 +444,36 @@ export default function DashboardPage() {
                   )}
                   {showRisk && (
                     <div className="text-[10px] text-white/50">接受风险披露后可见二维码</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-3 rounded-2xl border border-white/10 bg-black/40">
+                <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
+                  <div className="text-[11px] uppercase tracking-widest text-white/55">充值记录 / Deposit History</div>
+                </div>
+                <div className="grid grid-cols-4 gap-0 border-b border-white/10 px-3 py-2 text-[11px] uppercase tracking-widest text-white/55">
+                  <div>时间</div>
+                  <div>金额</div>
+                  <div>地址</div>
+                  <div className="text-right">Tx</div>
+                </div>
+                <div className="divide-y divide-white/10">
+                  {txRows.filter((t) => t.type === 'deposit').length === 0 ? (
+                    <div className="px-3 py-2 text-[11px] text-white/60">暂无充值记录</div>
+                  ) : (
+                    txRows
+                      .filter((t) => t.type === 'deposit')
+                      .map((t) => (
+                        <div key={t.id} className="grid grid-cols-4 items-center gap-2 px-3 py-2 text-xs">
+                          <div className="text-white/70">{new Date(t.timestamp).toLocaleString()}</div>
+                          <div className="text-white">{t.amount.toLocaleString()} USDT</div>
+                          <div className="truncate font-mono text-white/80">{t.address}</div>
+                          <div className="truncate text-right font-mono text-white/60">
+                            {t.hash ? t.hash.slice(0, 10) + '…' : '—'}
+                          </div>
+                        </div>
+                      ))
                   )}
                 </div>
               </div>

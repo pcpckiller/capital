@@ -41,6 +41,15 @@ const memPosts = new Map<string, PostRecord>();
 const memSlugToId = new Map<string, string>();
 let memFundraising = { progress: 0, updatedAt: 0 };
 
+export type UserAssets = {
+  userId: string;
+  autoAmount: number;
+  manualAmount: number;
+  isManualPriority: boolean;
+  updatedAt: number;
+};
+const memAssets = new Map<string, UserAssets>();
+
 export type WithdrawalRequest = {
   id: string;
   userEmail: string;
@@ -50,6 +59,19 @@ export type WithdrawalRequest = {
   timestamp: number;
 };
 const memWithdrawals: WithdrawalRequest[] = [];
+const memAddressToUser = new Map<string, string>(); // address -> userId
+
+export type TransactionRecord = {
+  id: string;
+  userId: string;
+  type: 'deposit' | 'withdrawal';
+  amount: number;
+  address: string;
+  hash?: string;
+  network?: string;
+  timestamp: number;
+};
+const memTransactions = new Map<string, TransactionRecord[]>(); // userId -> txs
 
 function ensureDemoAdmin() {
   if (kv.enabled) return;
@@ -558,6 +580,161 @@ export async function setFundraisingProgress(
   return memFundraising;
 }
 
+export async function getUserAssetsByUserId(userId: string): Promise<UserAssets | null> {
+  if (kv.enabled) {
+    try {
+      const data = await kv.hgetall(`assets:${userId}`);
+      if (data?.userId) {
+        return {
+          userId: data.userId,
+          autoAmount: Number(data.autoAmount ?? 0),
+          manualAmount: Number(data.manualAmount ?? 0),
+          isManualPriority: String(data.isManualPriority ?? 'false') === 'true',
+          updatedAt: Number(data.updatedAt ?? 0)
+        };
+      }
+    } catch {}
+  }
+  return memAssets.get(userId) ?? null;
+}
+
+export async function setAutoAmountByUserId(userId: string, amount: number): Promise<UserAssets> {
+  const updatedAt = Date.now();
+  if (kv.enabled) {
+    try {
+      const prev = (await getUserAssetsByUserId(userId)) ?? {
+        userId,
+        autoAmount: 0,
+        manualAmount: 0,
+        isManualPriority: false,
+        updatedAt
+      };
+      const next = { ...prev, autoAmount: Number(amount) || 0, updatedAt };
+      await kv.hmset(`assets:${userId}`, {
+        userId: next.userId,
+        autoAmount: String(next.autoAmount),
+        manualAmount: String(next.manualAmount),
+        isManualPriority: String(next.isManualPriority),
+        updatedAt: String(next.updatedAt)
+      });
+      return next;
+    } catch {}
+  }
+  const prev = memAssets.get(userId) ?? {
+    userId,
+    autoAmount: 0,
+    manualAmount: 0,
+    isManualPriority: false,
+    updatedAt
+  };
+  const next = { ...prev, autoAmount: Number(amount) || 0, updatedAt };
+  memAssets.set(userId, next);
+  return next;
+}
+
+export async function setManualOverrideByUserId(userId: string, manualAmount: number, isManualPriority: boolean): Promise<UserAssets> {
+  const updatedAt = Date.now();
+  if (kv.enabled) {
+    try {
+      const prev = (await getUserAssetsByUserId(userId)) ?? {
+        userId,
+        autoAmount: 0,
+        manualAmount: 0,
+        isManualPriority: false,
+        updatedAt
+      };
+      const next = { ...prev, manualAmount: Number(manualAmount) || 0, isManualPriority: Boolean(isManualPriority), updatedAt };
+      await kv.hmset(`assets:${userId}`, {
+        userId: next.userId,
+        autoAmount: String(next.autoAmount),
+        manualAmount: String(next.manualAmount),
+        isManualPriority: String(next.isManualPriority),
+        updatedAt: String(next.updatedAt)
+      });
+      return next;
+    } catch {}
+  }
+  const prev = memAssets.get(userId) ?? {
+    userId,
+    autoAmount: 0,
+    manualAmount: 0,
+    isManualPriority: false,
+    updatedAt
+  };
+  const next = { ...prev, manualAmount: Number(manualAmount) || 0, isManualPriority: Boolean(isManualPriority), updatedAt };
+  memAssets.set(userId, next);
+  return next;
+}
+
+export async function getEffectiveBalanceByUserId(userId: string): Promise<number | null> {
+  const assets = await getUserAssetsByUserId(userId);
+  if (!assets) return null;
+  return assets.isManualPriority ? assets.manualAmount : assets.autoAmount;
+}
+
+export async function incrementAutoAmountByUserId(userId: string, delta: number): Promise<UserAssets> {
+  const prev = (await getUserAssetsByUserId(userId)) ?? {
+    userId,
+    autoAmount: 0,
+    manualAmount: 0,
+    isManualPriority: false,
+    updatedAt: 0
+  };
+  const nextAuto = (Number(prev.autoAmount) || 0) + (Number(delta) || 0);
+  return setAutoAmountByUserId(userId, nextAuto);
+}
+
+export async function addTransaction(record: TransactionRecord): Promise<void> {
+  if (kv.enabled) {
+    try {
+      await kv.hmset(`tx:${record.id}`, {
+        id: record.id,
+        userId: record.userId,
+        type: record.type,
+        amount: String(record.amount),
+        address: record.address,
+        hash: record.hash ?? '',
+        network: record.network ?? '',
+        timestamp: String(record.timestamp)
+      });
+      await kv.sadd(`user:txs:${record.userId}`, record.id);
+      return;
+    } catch {
+      // fallthrough
+    }
+  }
+  const arr = memTransactions.get(record.userId) ?? [];
+  arr.push(record);
+  memTransactions.set(record.userId, arr);
+}
+
+export async function listTransactionsByUser(userId: string): Promise<TransactionRecord[]> {
+  if (kv.enabled) {
+    try {
+      const ids = await kv.smembers(`user:txs:${userId}`);
+      const out: TransactionRecord[] = [];
+      for (const id of ids) {
+        const data = await kv.hgetall(`tx:${id}`);
+        if (!data?.id) continue;
+        out.push({
+          id: data.id,
+          userId: data.userId,
+          type: (data.type as 'deposit' | 'withdrawal') ?? 'deposit',
+          amount: Number(data.amount ?? 0),
+          address: data.address ?? '',
+          hash: data.hash || undefined,
+          network: data.network || undefined,
+          timestamp: Number(data.timestamp ?? 0)
+        });
+      }
+      return out.sort((a, b) => b.timestamp - a.timestamp);
+    } catch {
+      // fallthrough
+    }
+  }
+  return (memTransactions.get(userId) ?? []).slice().sort((a, b) => b.timestamp - a.timestamp);
+}
+
 // Withdrawals
 export async function createWithdrawalRequest(input: {
   userEmail: string;
@@ -676,6 +853,37 @@ export async function listUserWithdrawalRequests(userEmail: string): Promise<Wit
   return memWithdrawals.filter((w) => w.userEmail === email).slice().sort((a, b) => b.timestamp - a.timestamp);
 }
 
+export async function findUserIdByDepositAddress(addressInput: string): Promise<string | null> {
+  const address = addressInput.trim();
+  if (!address) return null;
+  if (kv.enabled) {
+    try {
+      const m = await kv.hgetall(`deposit:addr:${address}`);
+      if (m?.userId) return m.userId;
+      // Fallback scan
+      const emails = await kv.smembers('users:set');
+      for (const email of emails) {
+        const u = await findUserByEmail(email);
+        if (!u) continue;
+        const dep = await kv.hgetall(`deposit:user:${u.id}`);
+        const erc20 = dep?.erc20 || '';
+        const trc20 = dep?.trc20 || '';
+        if (address === erc20 || address === trc20) return u.id;
+      }
+    } catch {
+      // fallthrough
+    }
+  }
+  const mem = memAddressToUser.get(address);
+  if (mem) return mem;
+  for (const [email, u] of memUsers.entries()) {
+    void email;
+    const deps = memUserDeposits.get(u.id);
+    if (deps && (deps.erc20 === address || deps.trc20 === address)) return u.id;
+  }
+  return null;
+}
+
 // Deposit address pool management
 export async function setDepositAddressPools(pools: { erc20?: string[]; trc20?: string[] }) {
   const clean = {
@@ -741,6 +949,12 @@ export async function assignDepositAddresses(userId: string): Promise<DepositAdd
         erc20: erc20 ?? '',
         trc20: trc20 ?? ''
       });
+      if (erc20) {
+        await kv.hmset(`deposit:addr:${erc20}`, { userId });
+      }
+      if (trc20) {
+        await kv.hmset(`deposit:addr:${trc20}`, { userId });
+      }
       await kv.hmset('deposit:idx', {
         erc20: String(ercIdx),
         trc20: String(trcIdx)
@@ -758,6 +972,8 @@ export async function assignDepositAddresses(userId: string): Promise<DepositAdd
   if (trc20) memDepositIdx.trc20 = (memDepositIdx.trc20 + 1) % Math.max(memDepositPools.trc20.length, 1);
   const out: DepositAddresses = { erc20, trc20 };
   memUserDeposits.set(userId, out);
+  if (erc20) memAddressToUser.set(erc20, userId);
+  if (trc20) memAddressToUser.set(trc20, userId);
   return out;
 }
 
