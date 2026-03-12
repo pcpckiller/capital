@@ -9,6 +9,9 @@ import { ShieldCheck } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export default function AdminPage() {
   const { data: session } = useSession();
   const [email, setEmail] = useState('');
@@ -160,6 +163,7 @@ export default function AdminPage() {
           {message && <div className="mt-2 text-[11px] text-white/65">{message}</div>}
         </form>
         </div>
+        <ManualAssetsCard />
         <FundraisingCard />
         <DepositPoolCard />
         <DeleteUserCard />
@@ -476,6 +480,105 @@ function AssignTester() {
         </button>
       </div>
       {result && <div className="mt-2 text-[11px] text-white/65">{result}</div>}
+    </div>
+  );
+}
+
+function ManualAssetsCard() {
+  const [email, setEmail] = useState('');
+  const [manual, setManual] = useState('');
+  const [enabled, setEnabled] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  async function load() {
+    setMsg(null);
+    if (!email) return;
+    setLoading(true);
+    const res = await fetch(`/api/admin/user-assets?email=${encodeURIComponent(email)}`, { cache: 'no-store' });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      setMsg(data?.error ?? '加载失败');
+    } else {
+      setManual(String(Number(data?.manualAmount ?? 0)));
+      setEnabled(Boolean(data?.isManualPriority));
+    }
+    setLoading(false);
+  }
+
+  async function save() {
+    setMsg(null);
+    if (!email) return;
+    setLoading(true);
+    const res = await fetch('/api/admin/user-assets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, manualAmount: Number(manual || 0), isManualPriority: enabled })
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      setMsg(data?.error ?? '保存失败');
+    } else {
+      setMsg('已保存');
+    }
+    setLoading(false);
+  }
+
+  return (
+    <div className={`rounded-3xl border ${enabled ? 'border-red-500/40 bg-red-900/10' : 'border-white/10 bg-white/[0.03]'} p-6 shadow-glow backdrop-blur`}>
+      <div className="mb-3 flex items-center justify-between">
+        <div className="text-xs uppercase tracking-[0.18em] text-white/50">Manual Asset Override</div>
+        {enabled && <div className="text-[11px] text-red-300">手动覆盖已开启</div>}
+      </div>
+      {msg && <div className={`mb-3 rounded-xl border ${enabled ? 'border-red-800/40 bg-red-900/20' : 'border-amber-800/40 bg-amber-900/20'} p-2 text-xs text-amber-200`}>{msg}</div>}
+      <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+        <input
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          type="email"
+          placeholder="投资人邮箱 / Email"
+          className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
+        />
+        <button
+          onClick={load}
+          className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 text-xs font-semibold text-white/80 hover:bg-white/10"
+        >
+          读取
+        </button>
+      </div>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1">
+          <div className="text-[11px] text-white/60">Manual Amount (USDT)</div>
+          <input
+            value={manual}
+            onChange={(e) => setManual(e.target.value)}
+            type="number"
+            className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
+          />
+        </div>
+        <div className="space-y-1">
+          <div className="text-[11px] text-white/60">Enable Manual Override</div>
+          <label className="inline-flex h-9 items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-3 text-xs font-semibold text-white/80">
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={(e) => setEnabled(e.target.checked)}
+              className="h-4 w-4 rounded"
+            />
+            {enabled ? 'ON' : 'OFF'}
+          </label>
+        </div>
+      </div>
+      <div className="mt-3 flex gap-2">
+        <button
+          onClick={save}
+          disabled={loading || !email}
+          className="inline-flex h-9 items-center justify-center rounded-2xl bg-electric px-4 text-xs font-semibold text-white shadow-glowStrong hover:brightness-110 disabled:opacity-60"
+        >
+          保存
+        </button>
+        <div className="self-center text-[11px] text-white/55">开启后前端显示以手动数值为准；关闭后恢复自动。</div>
+      </div>
     </div>
   );
 }
