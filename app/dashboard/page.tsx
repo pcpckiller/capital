@@ -330,13 +330,10 @@ export default function DashboardPage() {
                 <Wallet className="h-4 w-4 text-electric" />
               </div>
               <div>
-                <div className="text-xs uppercase tracking-widest text-white/70">
-                  Deposit Funds
-                </div>
+                <div className="text-xs uppercase tracking-widest text-white/70">Deposit Funds</div>
                 <div className="text-xs text-white/60">USDT 充值入口（稳定币入金）</div>
               </div>
             </div>
-
             <div className="mt-4 space-y-3">
               <div className="space-y-1">
                 <div className="text-[11px] text-white/60">选择网络 / Network</div>
@@ -349,7 +346,6 @@ export default function DashboardPage() {
                   <option value="USDT-TRC20">USDT-TRC20 (TRON)</option>
                 </select>
               </div>
-
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-[11px] text-white/60">
                   <span>充值地址 / Deposit Address</span>
@@ -366,88 +362,16 @@ export default function DashboardPage() {
                   {address}
                 </div>
               </div>
-
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur">
-            <div className="flex items-center justify-between">
-              <div className="text-xs uppercase tracking-widest text-white/70">Redemption</div>
-              <button
-                onClick={() => {
-                  setWdAmount('');
-                  setWdAddress('');
-                  setWdMsg(null);
-                  setShowWithdraw(true);
-                }}
-                className="rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur hover:bg-white/10"
-              >
-                提交提现申请
-              </button>
-            </div>
-            <div className="mt-1 text-xs text-white/60">提交后进入清算序列，按 NAV 周期审核与执行。</div>
-
-            <div className="mt-3 rounded-2xl border border-white/10 bg-black/40">
-              <div className="grid grid-cols-4 gap-0 border-b border-white/10 px-3 py-2 text-[11px] uppercase tracking-widest text-white/55">
-                <div>时间</div>
-                <div>金额</div>
-                <div>地址</div>
-                <div className="text-right">状态</div>
-              </div>
-              <div className="divide-y divide-white/10">
-                {wdRows.length === 0 ? (
-                  <div className="px-3 py-2 text-[11px] text-white/60">暂无提现记录</div>
-                ) : (
-                  wdRows.map((r) => (
-                    <div key={r.id} className="grid grid-cols-4 items-center gap-2 px-3 py-2 text-xs">
-                      <div className="text-white/70">{new Date(r.timestamp).toLocaleString()}</div>
-                      <div className="text-white">{r.amount.toLocaleString()} USDT</div>
-                      <div className="truncate font-mono text-white/80">{r.address}</div>
-                      <div className="text-right">
-                        <span className={r.status === 'pending' ? 'text-amber-300' : r.status === 'approved' ? 'text-emerald-300' : 'text-red-300'}>
-                          {r.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-
-
+              <div className="mt-2 grid grid-cols-[minmax(0,1fr)_120px] gap-3">
                 <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/5 p-3 text-[11px] text-yellow-100">
-                  <div className="font-semibold text-xs">重要提示 / Warning</div>
-                  <p className="mt-1 leading-relaxed">
-                    请仅向上述地址<span className="font-semibold">充值 USDT</span>。单笔最低充值金额为{' '}
-                    <span className="font-semibold">10,000 USDT</span>，为确保财务分账准确，请以<span className="font-semibold">整数金额</span>投入。
-                  </p>
-                  <div className="mt-2 h-px w-full bg-yellow-500/20" />
-                  <div className="mt-2 space-y-1 leading-relaxed">
-                    <div>
-                      管理费 / Management Fee：<span className="font-semibold">0.5% / Year</span>{' '}
-                      <span className="text-yellow-200/90">(Accrued Monthly)</span>
-                    </div>
-                    <div>
-                      业绩报酬 / Performance Fee：<span className="font-semibold">20% of Profits</span>{' '}
-                      <span className="text-yellow-200/90">(High Water Mark applied)</span>
-                    </div>
-                  </div>
+                  <div className="text-xs font-semibold">重要提示 / Warning</div>
+                  <p className="mt-1 leading-relaxed">请仅向上述地址<span className="font-semibold">充值 USDT</span>。单笔最低充值金额为 <span className="font-semibold">10,000 USDT</span>，为确保财务分账准确，请以<span className="font-semibold">整数金额</span>投入。</p>
                 </div>
                 <div className="flex items-center justify-center rounded-2xl border border-white/15 bg-black/60 p-2">
-                  {!showRisk && (
-                    <QRCode
-                      value={address}
-                      size={96}
-                      bgColor="#050505"
-                      fgColor="#ffffff"
-                      level="M"
-                      includeMargin={false}
-                    />
-                  )}
-                  {showRisk && (
-                    <div className="text-[10px] text-white/50">接受风险披露后可见二维码</div>
-                  )}
+                  {!showRisk && <QRCode value={address} size={96} bgColor="#050505" fgColor="#ffffff" level="M" includeMargin={false} />}
+                  {showRisk && <div className="text-[10px] text-white/50">接受风险披露后可见二维码</div>}
                 </div>
               </div>
-
               <div className="mt-3 rounded-2xl border border-white/10 bg-black/40">
                 <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
                   <div className="text-[11px] uppercase tracking-widest text-white/55">充值记录 / Deposit History</div>
@@ -462,32 +386,62 @@ export default function DashboardPage() {
                   {txRows.filter((t) => t.type === 'deposit').length === 0 ? (
                     <div className="px-3 py-2 text-[11px] text-white/60">暂无充值记录</div>
                   ) : (
-                    txRows
-                      .filter((t) => t.type === 'deposit')
-                      .map((t) => (
-                        <div key={t.id} className="grid grid-cols-4 items-center gap-2 px-3 py-2 text-xs">
-                          <div className="text-white/70">{new Date(t.timestamp).toLocaleString()}</div>
-                          <div className="text-white">{t.amount.toLocaleString()} USDT</div>
-                          <div className="truncate font-mono text-white/80">{t.address}</div>
-                          <div className="truncate text-right font-mono text-white/60">
-                            {t.hash ? t.hash.slice(0, 10) + '…' : '—'}
-                          </div>
-                        </div>
-                      ))
+                    txRows.filter((t) => t.type === 'deposit').map((t) => (
+                      <div key={t.id} className="grid grid-cols-4 items-center gap-2 px-3 py-2 text-xs">
+                        <div className="text-white/70">{new Date(t.timestamp).toLocaleString()}</div>
+                        <div className="text-white">{t.amount.toLocaleString()} USDT</div>
+                        <div className="truncate font-mono text-white/80">{t.address}</div>
+                        <div className="truncate text-right font-mono text-white/60">{t.hash ? t.hash.slice(0, 10) + '…' : '—'}</div>
+                      </div>
+                    ))
                   )}
                 </div>
               </div>
+              <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs uppercase tracking-widest text-white/70">Redemption</div>
+                  <button
+                    onClick={() => {
+                      setWdAmount('');
+                      setWdAddress('');
+                      setWdMsg(null);
+                      setShowWithdraw(true);
+                    }}
+                    className="rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur hover:bg-white/10"
+                  >
+                    提交提现申请
+                  </button>
+                </div>
+                <div className="mt-1 text-xs text-white/60">提交后进入清算序列，按 NAV 周期审核与执行。</div>
+                <div className="mt-3 rounded-2xl border border-white/10 bg-black/40">
+                  <div className="grid grid-cols-4 gap-0 border-b border-white/10 px-3 py-2 text-[11px] uppercase tracking-widest text-white/55">
+                    <div>时间</div>
+                    <div>金额</div>
+                    <div>地址</div>
+                    <div className="text-right">状态</div>
+                  </div>
+                  <div className="divide-y divide-white/10">
+                    {wdRows.length === 0 ? (
+                      <div className="px-3 py-2 text-[11px] text-white/60">暂无提现记录</div>
+                    ) : (
+                      wdRows.map((r) => (
+                        <div key={r.id} className="grid grid-cols-4 items-center gap-2 px-3 py-2 text-xs">
+                          <div className="text-white/70">{new Date(r.timestamp).toLocaleString()}</div>
+                          <div className="text-white">{r.amount.toLocaleString()} USDT</div>
+                          <div className="truncate font-mono text-white/80">{r.address}</div>
+                          <div className="text-right"><span className={r.status === 'pending' ? 'text-amber-300' : r.status === 'approved' ? 'text-emerald-300' : 'text-red-300'}>{r.status}</span></div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
-
-            <div className="mt-3 text-[10px] text-white/55">
-              充值到账后，资金将被分配至策略组合对应的经纪子账户。净值（NAV）将于每日 00:00 (UTC+8) 更新。期间可能存在链上确认与风控检查延迟。
-            </div>
+            <div className="mt-3 text-[10px] text-white/55">充值到账后，资金将被分配至策略组合对应的经纪子账户。净值（NAV）将于每日 00:00 (UTC+8) 更新。期间可能存在链上确认与风控检查延迟。</div>
           </div>
-
-          {/* 去掉重复的右下角提现标签，避免与上方 Redemption 卡片重复 */}
         </div>
-      </section>
-    </main>
+        </section>
+      </main>
       {showWithdraw && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 px-4">
           <div className="w-full max-w-md rounded-3xl border border-white/15 bg-[#07070a]/95 p-6 shadow-glowStrong">
