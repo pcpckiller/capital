@@ -55,6 +55,7 @@ export default function DashboardPage() {
   const [wdAmount, setWdAmount] = useState('');
   const [wdAddress, setWdAddress] = useState('');
   const [wdMsg, setWdMsg] = useState<string | null>(null);
+  const [wdRows, setWdRows] = useState<Array<{ id: string; amount: number; address: string; status: 'pending' | 'approved' | 'rejected'; timestamp: number }>>([]);
 
 
   useEffect(() => {
@@ -126,6 +127,17 @@ export default function DashboardPage() {
     };
   }, [(session?.user as { id?: string } | undefined)?.id]);
 
+  useEffect(() => {
+    async function loadMyWithdrawals() {
+      try {
+        const res = await fetch('/api/user/withdrawals', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = (await res.json()) as Array<{ id: string; amount: number; address: string; status: 'pending' | 'approved' | 'rejected'; timestamp: number }>;
+        setWdRows(Array.isArray(data) ? data : []);
+      } catch {}
+    }
+    loadMyWithdrawals();
+  }, []);
 
   const chartData = useMemo(() => {
     if (!portfolio) return [];
@@ -359,6 +371,33 @@ export default function DashboardPage() {
               </button>
             </div>
             <div className="mt-1 text-xs text-white/60">提交后进入清算序列，按 NAV 周期审核与执行。</div>
+
+            <div className="mt-3 rounded-2xl border border-white/10 bg-black/40">
+              <div className="grid grid-cols-4 gap-0 border-b border-white/10 px-3 py-2 text-[11px] uppercase tracking-widest text-white/55">
+                <div>时间</div>
+                <div>金额</div>
+                <div>地址</div>
+                <div className="text-right">状态</div>
+              </div>
+              <div className="divide-y divide-white/10">
+                {wdRows.length === 0 ? (
+                  <div className="px-3 py-2 text-[11px] text-white/60">暂无提现记录</div>
+                ) : (
+                  wdRows.map((r) => (
+                    <div key={r.id} className="grid grid-cols-4 items-center gap-2 px-3 py-2 text-xs">
+                      <div className="text-white/70">{new Date(r.timestamp).toLocaleString()}</div>
+                      <div className="text-white">{r.amount.toLocaleString()} USDT</div>
+                      <div className="truncate font-mono text-white/80">{r.address}</div>
+                      <div className="text-right">
+                        <span className={r.status === 'pending' ? 'text-amber-300' : r.status === 'approved' ? 'text-emerald-300' : 'text-red-300'}>
+                          {r.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
 
 
@@ -458,6 +497,14 @@ export default function DashboardPage() {
                       return;
                     }
                     setWdMsg('您的提现申请已进入结算序列。系统将根据资产净值(NAV)清算周期进行审核，处理结果将同步至您的账户账单及注册邮箱。 / Your redemption request has entered the settlement queue. Processing status will be updated via your portal and registered email according to the NAV liquidation cycle.');
+                    // 刷新历史列表
+                    try {
+                      const rr = await fetch('/api/user/withdrawals', { cache: 'no-store' });
+                      if (rr.ok) {
+                        const arr = (await rr.json()) as Array<{ id: string; amount: number; address: string; status: 'pending' | 'approved' | 'rejected'; timestamp: number }>;
+                        setWdRows(Array.isArray(arr) ? arr : []);
+                      }
+                    } catch {}
                     setTimeout(() => setShowWithdraw(false), 1800);
                   }}
                   className="inline-flex h-9 items-center justify-center rounded-2xl bg-electric px-4 text-xs font-semibold text-white shadow-glowStrong hover:brightness-110"

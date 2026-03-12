@@ -649,6 +649,33 @@ export async function updateWithdrawalStatus(id: string, status: 'pending' | 'ap
   return null;
 }
 
+export async function listUserWithdrawalRequests(userEmail: string): Promise<WithdrawalRequest[]> {
+  const email = userEmail.toLowerCase();
+  if (kv.enabled) {
+    try {
+      const ids = await kv.smembers('withdrawals:set');
+      const out: WithdrawalRequest[] = [];
+      for (const id of ids) {
+        const data = await kv.hgetall(`withdrawal:${id}`);
+        if (data?.id && String(data.userEmail).toLowerCase() === email) {
+          out.push({
+            id: data.id,
+            userEmail: data.userEmail,
+            amount: Number(data.amount ?? 0),
+            address: data.address ?? '',
+            status: (data.status as 'pending' | 'approved' | 'rejected') ?? 'pending',
+            timestamp: Number(data.timestamp ?? 0)
+          });
+        }
+      }
+      return out.sort((a, b) => b.timestamp - a.timestamp);
+    } catch {
+      // fall through
+    }
+  }
+  return memWithdrawals.filter((w) => w.userEmail === email).slice().sort((a, b) => b.timestamp - a.timestamp);
+}
+
 // Deposit address pool management
 export async function setDepositAddressPools(pools: { erc20?: string[]; trc20?: string[] }) {
   const clean = {
