@@ -31,7 +31,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           <footer className="border-t border-white/10 px-4 py-6 text-xs text-white/60">
             <div className="mx-auto flex w-full max-w-6xl flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-              <div>© {new Date().getFullYear()} Cartoon Capital</div>
+              <div className="flex items-center gap-3">
+                <span>© 2025 - 2026 Cartoon Capital</span>
+                <span className="text-[10px] text-white/45">Private & Confidential. Qualified Investors Only.</span>
+              </div>
               <a
                 href="https://t.me/CartoonVC"
                 target="_blank"
