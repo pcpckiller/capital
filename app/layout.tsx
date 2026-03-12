@@ -35,14 +35,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <span>© 2025 - 2026 Cartoon Capital</span>
                 <span className="text-[10px] text-white/45">Private & Confidential. Qualified Investors Only.</span>
               </div>
-              <a
-                href="https://t.me/CartoonVC"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur hover:bg-white/10"
-              >
-                联系电报 Telegram: @CartoonVC
-              </a>
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href="mailto:support@cartooncapital.co"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur hover:bg-white/10"
+                >
+                  支持邮箱 support@cartooncapital.co
+                </a>
+                <a
+                  href="https://t.me/CartoonVC"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur hover:bg-white/10"
+                >
+                  联系电报 Telegram: @CartoonVC
+                </a>
+              </div>
             </div>
           </footer>
         </Providers>
