@@ -63,6 +63,7 @@ export async function createUser(input: {
   fullName: string;
   password: string;
 }): Promise<UserRecord> {
+  const DEFAULT_LOCKUP_END = '2026-04-30T00:00:00';
   const email = input.email.toLowerCase();
   if (kv.enabled) {
     try {
@@ -83,7 +84,7 @@ export async function createUser(input: {
         totalBalance: '0',
         cumulativePnl: '0',
         nav: '1',
-        lockupEnd: new Date().toISOString()
+        lockupEnd: DEFAULT_LOCKUP_END
       });
       // Best-effort assign deposit addresses if pool exists
       try {
@@ -113,7 +114,7 @@ export async function createUser(input: {
     totalBalance: 0,
     cumulativePnl: 0,
     nav: 1,
-    lockupEnd: new Date().toISOString()
+    lockupEnd: DEFAULT_LOCKUP_END
   });
   // Memory assignment if pools loaded
   try {
