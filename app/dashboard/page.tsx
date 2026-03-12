@@ -404,19 +404,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 text-xs text-white/70 backdrop-blur">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs font-semibold text-white/85">提现 / Redemption</div>
-                <p className="mt-1 text-[11px] text-white/60">
-                  如处于封闭期内，提现申请将排队等待开放窗口。
-                </p>
-              </div>
-              <button className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/20 bg-white/5 px-3 text-[11px] font-semibold text-white hover:bg-white/10">
-                提交提现申请
-              </button>
-            </div>
-          </div>
+          {/* 去掉重复的右下角提现标签，避免与上方 Redemption 卡片重复 */}
         </div>
       </section>
     </main>
