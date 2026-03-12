@@ -21,11 +21,11 @@ export async function POST(request: Request) {
   if (!session || role !== 'admin') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
-  const body = await request.json().catch(() => null);
+  const body = await request.json().catch(() => null) as { progress?: number; updatedAt?: number } | null;
   if (!body || typeof body.progress !== 'number') {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
   }
-  const data = await setFundraisingProgress(body.progress);
+  const updatedAt = typeof body.updatedAt === 'number' && body.updatedAt > 0 ? body.updatedAt : undefined;
+  const data = await setFundraisingProgress(body.progress, updatedAt);
   return NextResponse.json(data);
 }
-

@@ -172,6 +172,7 @@ function FundraisingCard() {
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState<number>(0);
   const [updatedAt, setUpdatedAt] = useState<number>(0);
+  const [updatedAtInput, setUpdatedAtInput] = useState<string>('');
   const [message, setMessage] = useState<string | null>(null);
 
   React.useEffect(() => {
@@ -181,7 +182,14 @@ function FundraisingCard() {
       const data = await res.json().catch(() => null);
       if (res.ok) {
         setProgress(Number(data?.progress ?? 0));
-        setUpdatedAt(Number(data?.updatedAt ?? 0));
+        const t = Number(data?.updatedAt ?? 0);
+        setUpdatedAt(t);
+        if (t > 0) {
+          const d = new Date(t);
+          const pad = (n: number) => String(n).padStart(2, '0');
+          const local = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+          setUpdatedAtInput(local);
+        }
       } else {
         setMessage(data?.error ?? '加载失败');
       }
@@ -192,10 +200,15 @@ function FundraisingCard() {
 
   async function save() {
     setMessage(null);
+    let ts: number | undefined = undefined;
+    if (updatedAtInput) {
+      const parsed = new Date(updatedAtInput).getTime();
+      if (!Number.isNaN(parsed) && parsed > 0) ts = parsed;
+    }
     const res = await fetch('/api/admin/fundraising', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ progress })
+      body: JSON.stringify({ progress, updatedAt: ts })
     });
     const data = await res.json().catch(() => null);
     if (!res.ok) {
@@ -203,7 +216,13 @@ function FundraisingCard() {
       return;
     }
     setProgress(Number(data?.progress ?? progress));
-    setUpdatedAt(Number(data?.updatedAt ?? Date.now()));
+    const t2 = Number(data?.updatedAt ?? Date.now());
+    setUpdatedAt(t2);
+    if (t2 > 0) {
+      const d = new Date(t2);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      setUpdatedAtInput(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`);
+    }
   }
 
   return (
@@ -244,25 +263,36 @@ function FundraisingCard() {
           />
           <span className="text-xs text-white/70">% </span>
         </div>
-        <div className="flex gap-2 pt-1">
+        <div className="grid gap-2 pt-1 sm:grid-cols-[1fr_auto]">
+          <div className="space-y-1">
+            <div className="text-[11px] text-white/60">更新时间（可选）</div>
+            <input
+              type="datetime-local"
+              value={updatedAtInput}
+              onChange={(e) => setUpdatedAtInput(e.target.value)}
+              className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
+            />
+          </div>
           <button
             onClick={save}
             className="inline-flex h-9 items-center justify-center rounded-2xl bg-electric px-4 text-xs font-semibold text-white shadow-glowStrong hover:brightness-110"
           >
             保存
           </button>
-          <button
-            onClick={() => setProgress(0)}
-            className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 text-xs font-semibold text-white/80 hover:bg-white/10"
-          >
-            清零
-          </button>
-          <button
-            onClick={() => setProgress(100)}
-            className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 text-xs font-semibold text-white/80 hover:bg-white/10"
-          >
-            拉满
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setProgress(0)}
+              className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 text-xs font-semibold text-white/80 hover:bg-white/10"
+            >
+              清零
+            </button>
+            <button
+              onClick={() => setProgress(100)}
+              className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 text-xs font-semibold text-white/80 hover:bg-white/10"
+            >
+              拉满
+            </button>
+          </div>
         </div>
       </div>
     </div>

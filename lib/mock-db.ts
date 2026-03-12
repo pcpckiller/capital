@@ -532,9 +532,12 @@ export async function getFundraisingProgress(): Promise<{ progress: number; upda
   return memFundraising;
 }
 
-export async function setFundraisingProgress(progress: number): Promise<{ progress: number; updatedAt: number }> {
+export async function setFundraisingProgress(
+  progress: number,
+  updatedAtOverride?: number
+): Promise<{ progress: number; updatedAt: number }> {
   const p = Math.max(0, Math.min(100, Math.round(progress)));
-  const updatedAt = Date.now();
+  const updatedAt = typeof updatedAtOverride === 'number' && updatedAtOverride > 0 ? updatedAtOverride : Date.now();
   if (kv.enabled) {
     try {
       await kv.hmset('fundraising:config', { progress: String(p), updatedAt: String(updatedAt) });
