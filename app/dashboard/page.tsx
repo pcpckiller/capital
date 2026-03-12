@@ -51,6 +51,10 @@ export default function DashboardPage() {
   const [showRisk, setShowRisk] = useState(false);
   const [fundraising, setFundraising] = useState<{ progress: number; updatedAt: number } | null>(null);
   const [depositAddr, setDepositAddr] = useState<{ erc20?: string; trc20?: string }>({});
+  const [showWithdraw, setShowWithdraw] = useState(false);
+  const [wdAmount, setWdAmount] = useState('');
+  const [wdAddress, setWdAddress] = useState('');
+  const [wdMsg, setWdMsg] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -124,18 +128,19 @@ export default function DashboardPage() {
 
 
   const chartData = useMemo(() => {
-    if (curve.length > 0) return curve;
     if (!portfolio) return [];
-    if (!Number.isFinite(portfolio.nav) || portfolio.nav <= 1.0000001) {
+    const nav = Number(portfolio.nav);
+    if (!Number.isFinite(nav) || nav <= 1.0000001) {
       return Array.from({ length: 12 }).map((_, i) => ({
         label: `M${i + 1}`,
         value: 1
       }));
     }
-    const base = Math.max(portfolio.nav - 0.2, 0.8);
+    if (curve.length > 0) return curve;
+    const base = Math.max(nav - 0.2, 0.8);
     return Array.from({ length: 12 }).map((_, i) => ({
       label: `M${i + 1}`,
-      value: base + ((portfolio.nav - base) * (i + 1)) / 12
+      value: base + ((nav - base) * (i + 1)) / 12
     }));
   }, [portfolio, curve]);
 
@@ -157,6 +162,7 @@ export default function DashboardPage() {
   }
 
   return (
+    <>
     <main className="min-h-dvh bg-bg px-4 py-6 text-white">
       {showRisk && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 px-4">
@@ -337,6 +343,25 @@ export default function DashboardPage() {
                 </div>
               </div>
 
+          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur">
+            <div className="flex items-center justify-between">
+              <div className="text-xs uppercase tracking-widest text-white/70">Redemption</div>
+              <button
+                onClick={() => {
+                  setWdAmount('');
+                  setWdAddress('');
+                  setWdMsg(null);
+                  setShowWithdraw(true);
+                }}
+                className="rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur hover:bg-white/10"
+              >
+                提交提现申请
+              </button>
+            </div>
+            <div className="mt-1 text-xs text-white/60">提交后进入清算序列，按 NAV 周期审核与执行。</div>
+          </div>
+
+
               <div className="mt-2 grid grid-cols-[minmax(0,1fr)_120px] gap-3">
                 <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/5 p-3 text-[11px] text-yellow-100">
                   <div className="font-semibold text-xs">重要提示 / Warning</div>
@@ -395,8 +420,77 @@ export default function DashboardPage() {
         </div>
       </section>
     </main>
+      {showWithdraw && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 px-4">
+          <div className="w-full max-w-md rounded-3xl border border-white/15 bg-[#07070a]/95 p-6 shadow-glowStrong">
+            <div className="mb-3 text-sm font-semibold">提交提现申请</div>
+            {wdMsg && <div className="mb-3 rounded-xl border border-amber-800/40 bg-amber-900/20 p-2 text-xs text-amber-200">{wdMsg}</div>}
+            <div className="space-y-3 text-xs">
+              <div className="space-y-1">
+                <div className="text-white/60">Amount (USDT)</div>
+                <input
+                  value={wdAmount}
+                  onChange={(e) => setWdAmount(e.target.value)}
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
+                />
+              </div>
+              <div className="space-y-1">
+                <div className="text-white/60">Withdrawal Address (ERC20/TRC20)</div>
+                <input
+                  value={wdAddress}
+                  onChange={(e) => setWdAddress(e.target.value)}
+                  className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
+                  placeholder="0x... 或 T..."
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={async () => {
+                    setWdMsg(null);
+                    const amount = Number(wdAmount);
+                    if (!Number.isFinite(amount) || amount <= 0) {
+                      setWdMsg('请输入有效的金额');
+                      return;
+                    }
+                    if (!wdAddress.trim()) {
+                      setWdMsg('请输入提现地址');
+                      return;
+                    }
+                    const res = await fetch('/api/user/withdraw', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ amount, address: wdAddress.trim() })
+                    });
+                    const data = await res.json().catch(() => null);
+                    if (!res.ok) {
+                      setWdMsg(data?.error ?? '提交失败');
+                      return;
+                    }
+                    setWdMsg('您的提现申请已进入结算序列。系统将根据资产净值(NAV)清算周期进行审核，处理结果将同步至您的账户账单及注册邮箱。 / Your redemption request has entered the settlement queue. Processing status will be updated via your portal and registered email according to the NAV liquidation cycle.');
+                    setTimeout(() => setShowWithdraw(false), 1800);
+                  }}
+                  className="inline-flex h-9 items-center justify-center rounded-2xl bg-electric px-4 text-xs font-semibold text-white shadow-glowStrong hover:brightness-110"
+                >
+                  提交
+                </button>
+                <button
+                  onClick={() => setShowWithdraw(false)}
+                  className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 text-xs font-semibold text-white/80 hover:bg-white/10"
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
+
 
 function SummaryTile({ label, value }: { label: string; value: string }) {
   return (

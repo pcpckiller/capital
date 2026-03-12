@@ -41,6 +41,16 @@ const memPosts = new Map<string, PostRecord>();
 const memSlugToId = new Map<string, string>();
 let memFundraising = { progress: 0, updatedAt: 0 };
 
+export type WithdrawalRequest = {
+  id: string;
+  userEmail: string;
+  amount: number;
+  address: string;
+  status: 'pending' | 'approved' | 'rejected';
+  timestamp: number;
+};
+const memWithdrawals: WithdrawalRequest[] = [];
+
 function ensureDemoAdmin() {
   if (kv.enabled) return;
   if (memUsers.size > 0) return;
@@ -546,6 +556,97 @@ export async function setFundraisingProgress(
   }
   memFundraising = { progress: p, updatedAt };
   return memFundraising;
+}
+
+// Withdrawals
+export async function createWithdrawalRequest(input: {
+  userEmail: string;
+  amount: number;
+  address: string;
+}): Promise<WithdrawalRequest> {
+  const id = `wd-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const wr: WithdrawalRequest = {
+    id,
+    userEmail: input.userEmail.toLowerCase(),
+    amount: Math.max(0, Number(input.amount) || 0),
+    address: input.address.trim(),
+    status: 'pending',
+    timestamp: Date.now()
+  };
+  if (kv.enabled) {
+    try {
+      await kv.hmset(`withdrawal:${id}`, {
+        id: wr.id,
+        userEmail: wr.userEmail,
+        amount: String(wr.amount),
+        address: wr.address,
+        status: wr.status,
+        timestamp: String(wr.timestamp)
+      });
+      await kv.sadd('withdrawals:set', id);
+      return wr;
+    } catch {
+      // fall back to memory
+    }
+  }
+  memWithdrawals.push(wr);
+  return wr;
+}
+
+export async function listWithdrawalRequests(): Promise<WithdrawalRequest[]> {
+  if (kv.enabled) {
+    try {
+      const ids = await kv.smembers('withdrawals:set');
+      const out: WithdrawalRequest[] = [];
+      for (const id of ids) {
+        const data = await kv.hgetall(`withdrawal:${id}`);
+        if (data?.id) {
+          out.push({
+            id: data.id,
+            userEmail: data.userEmail,
+            amount: Number(data.amount ?? 0),
+            address: data.address ?? '',
+            status: (data.status as 'pending' | 'approved' | 'rejected') ?? 'pending',
+            timestamp: Number(data.timestamp ?? 0)
+          });
+        }
+      }
+      return out.sort((a, b) => b.timestamp - a.timestamp);
+    } catch {
+      // fall through
+    }
+  }
+  return memWithdrawals.slice().sort((a, b) => b.timestamp - a.timestamp);
+}
+
+export async function updateWithdrawalStatus(id: string, status: 'pending' | 'approved' | 'rejected'): Promise<WithdrawalRequest | null> {
+  if (kv.enabled) {
+    try {
+      const data = await kv.hgetall(`withdrawal:${id}`);
+      if (!data?.id) return null;
+      const next = {
+        id: data.id,
+        userEmail: data.userEmail,
+        amount: Number(data.amount ?? 0),
+        address: data.address ?? '',
+        status,
+        timestamp: Number(data.timestamp ?? 0)
+      } satisfies WithdrawalRequest;
+      await kv.hmset(`withdrawal:${id}`, {
+        ...data,
+        status: status
+      });
+      return next;
+    } catch {
+      // fall through
+    }
+  }
+  const idx = memWithdrawals.findIndex((w) => w.id === id);
+  if (idx >= 0) {
+    memWithdrawals[idx] = { ...memWithdrawals[idx], status };
+    return memWithdrawals[idx];
+  }
+  return null;
 }
 
 // Deposit address pool management
