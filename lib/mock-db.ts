@@ -1048,11 +1048,11 @@ export type SubscriptionRequest = {
 const memProductConfigs = new Map<ProductId, ProductConfig>([
   [
     'master1',
-    { id: 'master1', name: '卡顿对冲基金主力1号 (Master Fund No. 1)', nav: 1.067 }
+    { id: 'master1', name: '卡顿对冲基金主力1号 (Master Fund No. 1)', nav: 1 }
   ],
   [
     'master2',
-    { id: 'master2', name: '卡顿对冲基金主力2号 (Master Fund No. 2)', nav: 1.012 }
+    { id: 'master2', name: '卡顿对冲基金主力2号 (Master Fund No. 2)', nav: 1 }
   ]
 ]);
 

@@ -164,6 +164,7 @@ export default function AdminPage() {
         </form>
         </div>
         <PendingSubscriptionsCard />
+        <ProductNavCard />
         <HoldingsAdjustCard />
         <ManualAssetsCard />
         <FundraisingCard />
@@ -742,6 +743,7 @@ function HoldingsAdjustCard() {
   const [msg, setMsg] = useState<string | null>(null);
   const [rows, setRows] = useState<HoldingRow[]>([]);
   const [draft, setDraft] = useState<Record<'master1' | 'master2', string>>({ master1: '', master2: '' });
+  const [saving, setSaving] = useState(false);
 
   async function load() {
     setMsg(null);
@@ -862,6 +864,161 @@ function HoldingsAdjustCard() {
             )}
           </div>
         </div>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <button
+          onClick={async () => {
+            setMsg(null);
+            const em = email.trim().toLowerCase();
+            if (!em) {
+              setMsg('请先输入邮箱');
+              return;
+            }
+            const u1 = Number(draft.master1);
+            const u2 = Number(draft.master2);
+            if (!Number.isFinite(u1) || u1 < 0 || !Number.isFinite(u2) || u2 < 0) {
+              setMsg('Units 输入无效');
+              return;
+            }
+            setSaving(true);
+            try {
+              const r1 = await fetch('/api/admin/holdings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: em, productId: 'master1', units: u1 })
+              });
+              const d1 = await r1.json().catch(() => null);
+              if (!r1.ok) throw new Error(d1?.error ?? '保存失败');
+              const r2 = await fetch('/api/admin/holdings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: em, productId: 'master2', units: u2 })
+              });
+              const d2 = await r2.json().catch(() => null);
+              if (!r2.ok) throw new Error(d2?.error ?? '保存失败');
+              setMsg('已保存 Units（主力1号/主力2号）');
+              await load();
+            } catch (e) {
+              setMsg(e instanceof Error ? e.message : '保存失败');
+            }
+            setSaving(false);
+          }}
+          disabled={saving}
+          className="inline-flex h-9 items-center justify-center rounded-2xl bg-electric px-4 text-xs font-semibold text-white shadow-glowStrong hover:brightness-110 disabled:opacity-60"
+        >
+          {saving ? '保存中…' : '保存更改'}
+        </button>
+        <div className="text-[11px] text-white/55">如果你在小屏幕看不到行内“保存”，可直接用此按钮一次性保存两行。</div>
+      </div>
+    </div>
+  );
+}
+
+function ProductNavCard() {
+  const [nav1, setNav1] = useState('');
+  const [nav2, setNav2] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  async function load() {
+    setMsg(null);
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/products', { cache: 'no-store' });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setMsg(data?.error ?? '加载失败');
+      } else {
+        setNav1(String(Number(data?.master1?.nav ?? 1)));
+        setNav2(String(Number(data?.master2?.nav ?? 1)));
+      }
+    } catch {
+      setMsg('加载失败');
+    }
+    setLoading(false);
+  }
+
+  React.useEffect(() => {
+    load();
+  }, []);
+
+  async function saveOne(productId: 'master1' | 'master2', nav: number) {
+    const res = await fetch('/api/admin/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId, nav })
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(data?.error ?? '保存失败');
+  }
+
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
+      <div className="mb-3 flex items-center justify-between">
+        <div>
+          <div className="text-xs uppercase tracking-[0.18em] text-white/50">Products</div>
+          <div className="mt-1 text-sm font-semibold">产品 NAV 配置（默认 1）</div>
+          <div className="text-[11px] text-white/60">该 NAV 会影响 Market Value 展示与申购确认时的 Units 分配（Units = Amount / NAV）。</div>
+        </div>
+        <button
+          onClick={load}
+          disabled={loading}
+          className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 text-xs font-semibold text-white/80 hover:bg-white/10 disabled:opacity-60"
+        >
+          {loading ? '刷新中…' : '刷新'}
+        </button>
+      </div>
+      {msg && <div className="mb-3 rounded-xl border border-amber-800/40 bg-amber-900/20 p-2 text-xs text-amber-200">{msg}</div>}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1">
+          <label className="text-[11px] text-white/60">主力1号 NAV</label>
+          <input
+            value={nav1}
+            onChange={(e) => setNav1(e.target.value)}
+            type="number"
+            step="0.0001"
+            className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-[11px] text-white/60">主力2号 NAV</label>
+          <input
+            value={nav2}
+            onChange={(e) => setNav2(e.target.value)}
+            type="number"
+            step="0.0001"
+            className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
+          />
+        </div>
+      </div>
+      <div className="mt-3 flex gap-2">
+        <button
+          onClick={async () => {
+            setMsg(null);
+            const n1 = Number(nav1);
+            const n2 = Number(nav2);
+            if (!Number.isFinite(n1) || n1 <= 0 || !Number.isFinite(n2) || n2 <= 0) {
+              setMsg('NAV 必须为大于 0 的数字');
+              return;
+            }
+            setSaving(true);
+            try {
+              await saveOne('master1', n1);
+              await saveOne('master2', n2);
+              setMsg('已保存 NAV');
+              await load();
+            } catch (e) {
+              setMsg(e instanceof Error ? e.message : '保存失败');
+            }
+            setSaving(false);
+          }}
+          disabled={saving}
+          className="inline-flex h-9 items-center justify-center rounded-2xl bg-electric px-4 text-xs font-semibold text-white shadow-glowStrong hover:brightness-110 disabled:opacity-60"
+        >
+          {saving ? '保存中…' : '保存 NAV'}
+        </button>
+        <div className="self-center text-[11px] text-white/55">保存后投资者端持仓与申购分配会使用新 NAV（刷新页面即可）。</div>
       </div>
     </div>
   );
