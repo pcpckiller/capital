@@ -163,6 +163,8 @@ export default function AdminPage() {
           {message && <div className="mt-2 text-[11px] text-white/65">{message}</div>}
         </form>
         </div>
+        <PendingSubscriptionsCard />
+        <HoldingsAdjustCard />
         <ManualAssetsCard />
         <FundraisingCard />
         <DepositPoolCard />
@@ -244,7 +246,7 @@ function FundraisingCard() {
             className="h-full rounded-full shadow-glowStrong"
             style={{
               width: `${Math.max(0, Math.min(100, progress))}%`,
-              background: 'linear-gradient(90deg, #0070f3 0%, #7c3aed 60%, #22c55e 100%)'
+              background: 'linear-gradient(90deg, #10b981 0%, #34d399 60%, #a7f3d0 100%)'
             }}
           />
         </div>
@@ -495,9 +497,14 @@ function ManualAssetsCard() {
     setMsg(null);
     if (!email) return;
     setLoading(true);
-    const res = await fetch(`/api/admin/user-assets?email=${encodeURIComponent(email)}`, { cache: 'no-store' });
+    const em = email.trim().toLowerCase();
+    const res = await fetch(`/api/admin/user-assets?email=${encodeURIComponent(em)}`, { cache: 'no-store' });
     const data = await res.json().catch(() => null);
-    if (!res.ok) {
+    if (res.status === 404) {
+      setManual('0');
+      setEnabled(false);
+      setMsg('未找到该用户');
+    } else if (!res.ok) {
       setMsg(data?.error ?? '加载失败');
     } else {
       setManual(String(Number(data?.manualAmount ?? 0)));
@@ -631,6 +638,230 @@ function DeleteUserCard() {
       </div>
       <div className="mt-2 text-[11px] text-white/55">
         将删除：用户、投资人 Portfolio、专属充值地址绑定；地址不会回收至池（避免误复用）。
+      </div>
+    </div>
+  );
+}
+
+function PendingSubscriptionsCard() {
+  const [rows, setRows] = useState<Array<{ id: string; userEmail: string; amount: number; createdAt: number; productId: 'master1' | 'master2' }>>([]);
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  async function load() {
+    setMsg(null);
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/subscriptions', { cache: 'no-store' });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setMsg(data?.error ?? '加载失败');
+      } else {
+        setRows(Array.isArray(data) ? data : []);
+      }
+    } catch {
+      setMsg('加载失败');
+    }
+    setLoading(false);
+  }
+
+  React.useEffect(() => {
+    load();
+  }, []);
+
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
+      <div className="mb-3 flex items-center justify-between">
+        <div>
+          <div className="text-xs uppercase tracking-[0.18em] text-white/50">Subscriptions</div>
+          <div className="mt-1 text-sm font-semibold">待审批申购</div>
+          <div className="text-[11px] text-white/60">确认后将自动为用户分配【主力2号】持仓份额（Units）。</div>
+        </div>
+        <button
+          onClick={load}
+          disabled={loading}
+          className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 text-xs font-semibold text-white/80 hover:bg-white/10 disabled:opacity-60"
+        >
+          {loading ? '刷新中…' : '刷新'}
+        </button>
+      </div>
+      {msg && <div className="mb-3 rounded-xl border border-amber-800/40 bg-amber-900/20 p-2 text-xs text-amber-200">{msg}</div>}
+      <div className="overflow-x-auto">
+        <div className="min-w-[720px] rounded-2xl border border-white/10 bg-black/40">
+          <div className="grid grid-cols-[200px_1fr_160px_160px] gap-2 border-b border-white/10 px-3 py-2 text-[11px] uppercase tracking-widest text-white/55">
+            <div>时间</div>
+            <div>用户</div>
+            <div className="text-right">金额</div>
+            <div className="text-right">操作</div>
+          </div>
+          <div className="divide-y divide-white/10">
+            {rows.length === 0 ? (
+              <div className="px-3 py-2 text-[11px] text-white/60">暂无待审批申购</div>
+            ) : (
+              rows.map((r) => (
+                <div key={r.id} className="grid grid-cols-[200px_1fr_160px_160px] items-center gap-2 px-3 py-2 text-xs">
+                  <div className="text-white/70">{new Date(r.createdAt).toLocaleString()}</div>
+                  <div className="truncate text-white/85">{r.userEmail}</div>
+                  <div className="text-right text-white">{Number(r.amount).toLocaleString()} USDT</div>
+                  <div className="text-right">
+                    <button
+                      onClick={async () => {
+                        setMsg(null);
+                        const res = await fetch('/api/admin/subscriptions', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ id: r.id })
+                        });
+                        const data = await res.json().catch(() => null);
+                        if (!res.ok) {
+                          setMsg(data?.error ?? '确认失败');
+                          return;
+                        }
+                        setMsg(`已确认：${r.userEmail}（份额已自动分配）`);
+                        await load();
+                      }}
+                      className="inline-flex h-8 items-center justify-center rounded-2xl bg-emerald-500 px-3 text-[11px] font-semibold text-white hover:brightness-110"
+                    >
+                      确认
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HoldingsAdjustCard() {
+  type HoldingRow = { productId: 'master1' | 'master2'; fundName: string; nav: number; units: number; marketValue: number; pnl: number };
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [rows, setRows] = useState<HoldingRow[]>([]);
+  const [draft, setDraft] = useState<Record<'master1' | 'master2', string>>({ master1: '', master2: '' });
+
+  async function load() {
+    setMsg(null);
+    const em = email.trim().toLowerCase();
+    if (!em) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/holdings?email=${encodeURIComponent(em)}`, { cache: 'no-store' });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        setMsg(data?.error ?? '加载失败');
+        setRows([]);
+      } else {
+        const holdings = Array.isArray((data as { holdings?: HoldingRow[] } | null)?.holdings)
+          ? ((data as { holdings: HoldingRow[] }).holdings ?? [])
+          : [];
+        setRows(holdings);
+        const m1 = holdings.find((h) => h.productId === 'master1');
+        const m2 = holdings.find((h) => h.productId === 'master2');
+        setDraft({
+          master1: m1 ? String(Number(m1.units ?? 0)) : '0',
+          master2: m2 ? String(Number(m2.units ?? 0)) : '0'
+        });
+      }
+    } catch {
+      setMsg('加载失败');
+      setRows([]);
+    }
+    setLoading(false);
+  }
+
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
+      <div className="mb-3">
+        <div className="text-xs uppercase tracking-[0.18em] text-white/50">Holdings</div>
+        <div className="mt-1 text-sm font-semibold">持仓分配（Units 手动调整）</div>
+        <div className="text-[11px] text-white/60">管理员可直接修改特定用户的【主力1号/主力2号】持有份额。</div>
+      </div>
+      {msg && <div className="mb-3 rounded-xl border border-amber-800/40 bg-amber-900/20 p-2 text-xs text-amber-200">{msg}</div>}
+      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+        <input
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          type="email"
+          placeholder="投资人邮箱 / Email"
+          className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
+        />
+        <button
+          onClick={load}
+          disabled={!email || loading}
+          className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 text-xs font-semibold text-white/80 hover:bg-white/10 disabled:opacity-60"
+        >
+          {loading ? '读取中…' : '读取持仓'}
+        </button>
+      </div>
+
+      <div className="mt-3 overflow-x-auto">
+        <div className="min-w-[760px] rounded-2xl border border-white/10 bg-black/40">
+          <div className="grid grid-cols-[1.4fr_0.6fr_0.7fr_0.9fr_0.7fr_160px] gap-2 border-b border-white/10 px-3 py-2 text-[11px] uppercase tracking-widest text-white/55">
+            <div>基金名称</div>
+            <div className="text-right">NAV</div>
+            <div className="text-right">Units</div>
+            <div className="text-right">Market Value</div>
+            <div className="text-right">PnL</div>
+            <div className="text-right">操作</div>
+          </div>
+          <div className="divide-y divide-white/10">
+            {rows.length === 0 ? (
+              <div className="px-3 py-2 text-[11px] text-white/60">请先输入邮箱并读取</div>
+            ) : (
+              rows.map((r) => (
+                <div key={r.productId} className="grid grid-cols-[1.4fr_0.6fr_0.7fr_0.9fr_0.7fr_160px] items-center gap-2 px-3 py-2 text-xs">
+                  <div className="truncate text-white/90">{r.fundName}</div>
+                  <div className="text-right text-white/80">{Number(r.nav).toFixed(3)}</div>
+                  <div className="text-right">
+                    <input
+                      value={draft[r.productId]}
+                      onChange={(e) => setDraft((p) => ({ ...p, [r.productId]: e.target.value }))}
+                      type="number"
+                      step="0.0001"
+                      className="h-8 w-32 rounded-2xl border border-white/10 bg-black/40 px-3 text-xs text-right outline-none focus:border-electric focus:shadow-glow"
+                    />
+                  </div>
+                  <div className="text-right text-white">{Number(r.marketValue).toLocaleString()} USDT</div>
+                  <div className={`text-right ${r.pnl >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
+                    {r.pnl >= 0 ? '+' : ''}
+                    {Number(r.pnl).toLocaleString()} USDT
+                  </div>
+                  <div className="text-right">
+                    <button
+                      onClick={async () => {
+                        setMsg(null);
+                        const units = Number(draft[r.productId]);
+                        if (!Number.isFinite(units) || units < 0) {
+                          setMsg('Units 输入无效');
+                          return;
+                        }
+                        const res = await fetch('/api/admin/holdings', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ email: email.trim().toLowerCase(), productId: r.productId, units })
+                        });
+                        const data = await res.json().catch(() => null);
+                        if (!res.ok) {
+                          setMsg(data?.error ?? '保存失败');
+                          return;
+                        }
+                        setMsg('已更新 Units');
+                        await load();
+                      }}
+                      className="inline-flex h-8 items-center justify-center rounded-2xl bg-electric px-3 text-[11px] font-semibold text-white shadow-glowStrong hover:brightness-110"
+                    >
+                      保存
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -35,6 +35,24 @@ type Portfolio = {
   lockupEnd: string;
 };
 
+type HoldingRow = {
+  productId: 'master1' | 'master2';
+  fundName: string;
+  nav: number;
+  units: number;
+  marketValue: number;
+  pnl: number;
+};
+
+type SubscriptionRow = {
+  id: string;
+  productId: 'master1' | 'master2';
+  amount: number;
+  status: 'pending' | 'confirmed';
+  createdAt: number;
+  confirmedAt?: number;
+};
+
 type Network = 'USDT-ERC20' | 'USDT-TRC20';
 
 const DEFAULT_USDT_ADDRESSES: Record<Network, string> = {
@@ -57,6 +75,11 @@ export default function DashboardPage() {
   const [wdMsg, setWdMsg] = useState<string | null>(null);
   const [wdRows, setWdRows] = useState<Array<{ id: string; amount: number; address: string; status: 'pending' | 'approved' | 'rejected'; timestamp: number }>>([]);
   const [txRows, setTxRows] = useState<Array<{ id: string; type: 'deposit' | 'withdrawal'; amount: number; address: string; hash?: string; network?: string; timestamp: number }>>([]);
+  const [holdings, setHoldings] = useState<HoldingRow[]>([]);
+  const [subs, setSubs] = useState<SubscriptionRow[]>([]);
+  const [showSubscribe, setShowSubscribe] = useState(false);
+  const [subAmount, setSubAmount] = useState('');
+  const [subMsg, setSubMsg] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -86,6 +109,30 @@ export default function DashboardPage() {
       setFundraising(data);
     }
     loadFundraising();
+  }, []);
+
+  useEffect(() => {
+    async function loadHoldings() {
+      try {
+        const res = await fetch('/api/holdings', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = (await res.json()) as HoldingRow[];
+        setHoldings(Array.isArray(data) ? data : []);
+      } catch {}
+    }
+    loadHoldings();
+  }, []);
+
+  useEffect(() => {
+    async function loadSubscriptions() {
+      try {
+        const res = await fetch('/api/user/subscriptions', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = (await res.json()) as SubscriptionRow[];
+        setSubs(Array.isArray(data) ? data : []);
+      } catch {}
+    }
+    loadSubscriptions();
   }, []);
 
   useEffect(() => {
@@ -259,6 +306,58 @@ export default function DashboardPage() {
               </p>
             )}
           </div>
+
+          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-xs uppercase tracking-widest text-white/60">持仓明细 / Portfolio Holdings</div>
+                <div className="mt-1 text-xs text-white/55">多产品持仓视图（移动端支持横向滚动）。</div>
+              </div>
+            </div>
+            <div className="mt-3 overflow-x-auto">
+              <div className="min-w-[720px] rounded-2xl border border-white/10 bg-black/40">
+                <div className="grid grid-cols-[1.4fr_0.6fr_0.7fr_0.8fr_0.7fr_120px] gap-2 border-b border-white/10 px-3 py-2 text-[11px] uppercase tracking-widest text-white/55">
+                  <div>基金名称</div>
+                  <div className="text-right">NAV</div>
+                  <div className="text-right">Units</div>
+                  <div className="text-right">Market Value</div>
+                  <div className="text-right">PnL</div>
+                  <div className="text-right">操作</div>
+                </div>
+                <div className="divide-y divide-white/10">
+                  {holdings.length === 0 ? (
+                    <div className="px-3 py-2 text-[11px] text-white/60">暂无持仓数据</div>
+                  ) : (
+                    holdings.map((h) => (
+                      <div key={h.productId} className="grid grid-cols-[1.4fr_0.6fr_0.7fr_0.8fr_0.7fr_120px] items-center gap-2 px-3 py-2 text-xs">
+                        <div className="truncate text-white">{h.fundName}</div>
+                        <div className="text-right text-white/85">{Number(h.nav).toFixed(3)}</div>
+                        <div className="text-right font-mono text-white/85">{Number(h.units).toFixed(4)}</div>
+                        <div className="text-right text-white">{Number(h.marketValue).toLocaleString()} USDT</div>
+                        <div className={`text-right ${h.pnl >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
+                          {h.pnl >= 0 ? '+' : ''}
+                          {Number(h.pnl).toLocaleString()} USDT
+                        </div>
+                        <div className="text-right">
+                          <button
+                            onClick={() => {
+                              setWdAmount('');
+                              setWdAddress('');
+                              setWdMsg(null);
+                              setShowWithdraw(true);
+                            }}
+                            className="inline-flex h-8 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-3 text-[11px] font-semibold text-white/80 hover:bg-white/10"
+                          >
+                            赎回 / Redeem
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
           
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur">
             <div className="flex items-center justify-between">
@@ -267,20 +366,79 @@ export default function DashboardPage() {
                 <div className="text-[11px] text-white/50">更新于 {new Date(fundraising.updatedAt || Date.now()).toLocaleString()}</div>
               )}
             </div>
+            <div className="mt-2 text-xs text-white/70">【卡顿对冲基金主力2号 (Master Fund No. 2)】</div>
             <div className="mt-3 h-4 w-full overflow-hidden rounded-full border border-white/10 bg-white/[0.08]">
               <div
                 className="h-full rounded-full shadow-glowStrong transition-all"
                 style={{
                   width: `${Math.max(0, Math.min(100, fundraising?.progress ?? 0))}%`,
-                  background: 'linear-gradient(90deg, #0070f3 0%, #7c3aed 60%, #22c55e 100%)'
+                  background: 'linear-gradient(90deg, #10b981 0%, #34d399 60%, #a7f3d0 100%)'
                 }}
               />
             </div>
-            <div className="mt-2 text-right text-xs text-white/70">
-              {Math.max(0, Math.min(100, fundraising?.progress ?? 0))}%
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <div className="text-xs text-white/70">{Math.max(0, Math.min(100, fundraising?.progress ?? 0))}%</div>
+              <button
+                onClick={() => {
+                  setSubAmount('');
+                  setSubMsg(null);
+                  setShowSubscribe(true);
+                }}
+                className="inline-flex h-9 items-center justify-center rounded-2xl bg-electric px-4 text-xs font-semibold text-white shadow-glowStrong hover:brightness-110"
+              >
+                申购 / Subscribe
+              </button>
             </div>
             <div className="mt-1 text-[11px] text-white/55">
               募资规模上限（Hard Cap）：<span className="font-semibold">2,000万 USDT</span>
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-xs uppercase tracking-widest text-white/60">交易记录</div>
+                <div className="mt-1 text-xs text-white/55">申购申请与确认状态会在此更新。</div>
+              </div>
+            </div>
+            <div className="mt-3 overflow-x-auto">
+              <div className="min-w-[720px] rounded-2xl border border-white/10 bg-black/40">
+                <div className="grid grid-cols-[180px_1fr_160px_160px] gap-2 border-b border-white/10 px-3 py-2 text-[11px] uppercase tracking-widest text-white/55">
+                  <div>时间</div>
+                  <div>产品</div>
+                  <div className="text-right">金额</div>
+                  <div className="text-right">状态</div>
+                </div>
+                <div className="divide-y divide-white/10">
+                  {subs.length === 0 ? (
+                    <div className="px-3 py-2 text-[11px] text-white/60">暂无申购记录</div>
+                  ) : (
+                    subs.map((s) => (
+                      <div key={s.id} className="grid grid-cols-[180px_1fr_160px_160px] items-center gap-2 px-3 py-2 text-xs">
+                        <div className="text-white/70">{new Date(s.createdAt).toLocaleString()}</div>
+                        <div className="truncate text-white/85">
+                          {s.productId === 'master2' ? '卡顿对冲基金主力2号 (Master Fund No. 2)' : '卡顿对冲基金主力1号 (Master Fund No. 1)'}
+                        </div>
+                        <div className="text-right text-white">{Number(s.amount).toLocaleString()} USDT</div>
+                        <div className="text-right">
+                          <span
+                            className={
+                              s.status === 'pending'
+                                ? 'rounded-md bg-amber-400/10 px-2 py-0.5 text-amber-300'
+                                : 'rounded-md bg-emerald-400/10 px-2 py-0.5 text-emerald-300'
+                            }
+                          >
+                            {s.status === 'pending' ? 'Pending Confirmation (待确认)' : 'Confirmed (已确认)'}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-[11px] text-white/70">
+              申购申请已提交，请确保已向指定地址汇入足额 USDT。IR 团队核实后将为您分配持仓份额。
             </div>
           </div>
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur">
@@ -313,7 +471,7 @@ export default function DashboardPage() {
                   <Line
                     type="monotone"
                     dataKey="value"
-                    stroke="#0070f3"
+                    stroke="#10b981"
                     strokeWidth={2}
                     dot={false}
                   />
@@ -508,6 +666,68 @@ export default function DashboardPage() {
                 </button>
                 <button
                   onClick={() => setShowWithdraw(false)}
+                  className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 text-xs font-semibold text-white/80 hover:bg-white/10"
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {showSubscribe && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 px-4">
+          <div className="w-full max-w-md rounded-3xl border border-white/15 bg-[#07070a]/95 p-6 shadow-glowStrong">
+            <div className="mb-1 text-sm font-semibold">申购 / Subscribe</div>
+            <div className="text-xs text-white/60">产品：卡顿对冲基金主力2号 (Master Fund No. 2)</div>
+            {subMsg && <div className="mt-3 rounded-xl border border-amber-800/40 bg-amber-900/20 p-2 text-xs text-amber-200">{subMsg}</div>}
+            <div className="mt-4 space-y-3 text-xs">
+              <div className="space-y-1">
+                <div className="text-white/60">申购金额 (USDT)</div>
+                <input
+                  value={subAmount}
+                  onChange={(e) => setSubAmount(e.target.value)}
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={async () => {
+                    setSubMsg(null);
+                    const amount = Number(subAmount);
+                    if (!Number.isFinite(amount) || amount <= 0) {
+                      setSubMsg('请输入有效的申购金额');
+                      return;
+                    }
+                    const res = await fetch('/api/subscribe', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ amount })
+                    });
+                    const data = await res.json().catch(() => null);
+                    if (!res.ok) {
+                      setSubMsg(data?.error ?? '提交失败');
+                      return;
+                    }
+                    setSubMsg('申购申请已提交，请确保已向指定地址汇入足额 USDT。IR 团队核实后将为您分配持仓份额。');
+                    try {
+                      const rr = await fetch('/api/user/subscriptions', { cache: 'no-store' });
+                      if (rr.ok) {
+                        const arr = (await rr.json()) as SubscriptionRow[];
+                        setSubs(Array.isArray(arr) ? arr : []);
+                      }
+                    } catch {}
+                    setTimeout(() => setShowSubscribe(false), 1600);
+                  }}
+                  className="inline-flex h-9 items-center justify-center rounded-2xl bg-electric px-4 text-xs font-semibold text-white shadow-glowStrong hover:brightness-110"
+                >
+                  提交
+                </button>
+                <button
+                  onClick={() => setShowSubscribe(false)}
                   className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 text-xs font-semibold text-white/80 hover:bg-white/10"
                 >
                   取消

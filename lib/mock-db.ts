@@ -1002,3 +1002,336 @@ export async function getDepositAddressPools(): Promise<{ erc20: string[]; trc20
     idx: { ...memDepositIdx }
   };
 }
+
+// ----------------------------
+// Multi-product holdings + subscriptions
+// ----------------------------
+
+export type ProductId = 'master1' | 'master2';
+
+export type ProductConfig = {
+  id: ProductId;
+  name: string;
+  nav: number;
+};
+
+export type HoldingRecord = {
+  userId: string;
+  productId: ProductId;
+  units: number;
+  pnl: number; // cumulative PnL (USDT) for this product
+  updatedAt: number;
+};
+
+export type HoldingView = {
+  productId: ProductId;
+  fundName: string;
+  nav: number;
+  units: number;
+  marketValue: number;
+  pnl: number;
+};
+
+export type SubscriptionStatus = 'pending' | 'confirmed';
+
+export type SubscriptionRequest = {
+  id: string;
+  userId: string;
+  userEmail: string;
+  productId: ProductId;
+  amount: number; // USDT amount subscribed
+  status: SubscriptionStatus;
+  createdAt: number;
+  confirmedAt?: number;
+};
+
+const memProductConfigs = new Map<ProductId, ProductConfig>([
+  [
+    'master1',
+    { id: 'master1', name: '卡顿对冲基金主力1号 (Master Fund No. 1)', nav: 1.067 }
+  ],
+  [
+    'master2',
+    { id: 'master2', name: '卡顿对冲基金主力2号 (Master Fund No. 2)', nav: 1.012 }
+  ]
+]);
+
+const memHoldings = new Map<string, Map<ProductId, HoldingRecord>>(); // userId -> (productId -> holding)
+const memSubscriptions: SubscriptionRequest[] = [];
+
+function normalizeUnits(x: unknown) {
+  const v = Number(x);
+  if (!Number.isFinite(v) || v < 0) return 0;
+  return v;
+}
+
+function normalizeAmount(x: unknown) {
+  const v = Number(x);
+  if (!Number.isFinite(v) || v <= 0) return 0;
+  return v;
+}
+
+export async function getProductConfig(productId: ProductId): Promise<ProductConfig> {
+  if (kv.enabled) {
+    try {
+      const data = await kv.hgetall(`product:${productId}`);
+      if (data?.id) {
+        return {
+          id: (data.id as ProductId) ?? productId,
+          name: data.name ?? memProductConfigs.get(productId)?.name ?? productId,
+          nav: Number(data.nav ?? memProductConfigs.get(productId)?.nav ?? 1)
+        };
+      }
+    } catch {
+      // fall through
+    }
+  }
+  return memProductConfigs.get(productId) ?? { id: productId, name: productId, nav: 1 };
+}
+
+export async function setProductNav(productId: ProductId, nav: number): Promise<ProductConfig> {
+  const safeNav = Number.isFinite(nav) && nav > 0 ? nav : 1;
+  const prev = await getProductConfig(productId);
+  const next: ProductConfig = { ...prev, nav: safeNav };
+  if (kv.enabled) {
+    try {
+      await kv.hmset(`product:${productId}`, { id: next.id, name: next.name, nav: String(next.nav) });
+      return next;
+    } catch {
+      // fall through
+    }
+  }
+  memProductConfigs.set(productId, next);
+  return next;
+}
+
+async function getHolding(userId: string, productId: ProductId): Promise<HoldingRecord> {
+  const now = Date.now();
+  if (kv.enabled) {
+    try {
+      const data = await kv.hgetall(`holding:${userId}:${productId}`);
+      if (data?.userId) {
+        return {
+          userId: data.userId,
+          productId: (data.productId as ProductId) ?? productId,
+          units: Number(data.units ?? 0),
+          pnl: Number(data.pnl ?? 0),
+          updatedAt: Number(data.updatedAt ?? 0)
+        };
+      }
+    } catch {
+      // fall through
+    }
+    // KV 已启用但暂无该持仓记录：不要落到内存分支（避免多实例不一致）
+    return { userId, productId, units: 0, pnl: 0, updatedAt: now };
+  }
+  const m = memHoldings.get(userId) ?? new Map<ProductId, HoldingRecord>();
+  const existing = m.get(productId);
+  if (existing) return existing;
+  const seed: HoldingRecord = { userId, productId, units: 0, pnl: 0, updatedAt: now };
+  m.set(productId, seed);
+  memHoldings.set(userId, m);
+  return seed;
+}
+
+async function setHolding(record: HoldingRecord): Promise<HoldingRecord> {
+  const next: HoldingRecord = {
+    ...record,
+    units: normalizeUnits(record.units),
+    pnl: Number.isFinite(Number(record.pnl)) ? Number(record.pnl) : 0,
+    updatedAt: record.updatedAt || Date.now()
+  };
+  if (kv.enabled) {
+    try {
+      await kv.hmset(`holding:${next.userId}:${next.productId}`, {
+        userId: next.userId,
+        productId: next.productId,
+        units: String(next.units),
+        pnl: String(next.pnl),
+        updatedAt: String(next.updatedAt)
+      });
+      return next;
+    } catch {
+      // fall through
+    }
+  }
+  const m = memHoldings.get(next.userId) ?? new Map<ProductId, HoldingRecord>();
+  m.set(next.productId, next);
+  memHoldings.set(next.userId, m);
+  return next;
+}
+
+export async function setUnitsByUserId(userId: string, productId: ProductId, units: number): Promise<HoldingRecord> {
+  const prev = await getHolding(userId, productId);
+  return setHolding({ ...prev, units: normalizeUnits(units), updatedAt: Date.now() });
+}
+
+export async function listHoldingsViewByUserId(userId: string): Promise<HoldingView[]> {
+  const products: ProductId[] = ['master1', 'master2'];
+  const out: HoldingView[] = [];
+  for (const pid of products) {
+    const cfg = await getProductConfig(pid);
+    const h = await getHolding(userId, pid);
+    const nav = Number.isFinite(cfg.nav) && cfg.nav > 0 ? cfg.nav : 1;
+    out.push({
+      productId: pid,
+      fundName: cfg.name,
+      nav,
+      units: Number(h.units ?? 0),
+      marketValue: (Number(h.units ?? 0) || 0) * nav,
+      pnl: Number(h.pnl ?? 0)
+    });
+  }
+  return out;
+}
+
+export async function createSubscriptionRequest(input: {
+  userId: string;
+  userEmail: string;
+  productId: ProductId;
+  amount: number;
+}): Promise<SubscriptionRequest> {
+  const amount = normalizeAmount(input.amount);
+  if (!amount) throw new Error('Invalid amount');
+  const now = Date.now();
+  const id = `sub-${now}-${Math.random().toString(36).slice(2, 8)}`;
+  const rec: SubscriptionRequest = {
+    id,
+    userId: input.userId,
+    userEmail: input.userEmail.toLowerCase(),
+    productId: input.productId,
+    amount,
+    status: 'pending',
+    createdAt: now
+  };
+  if (kv.enabled) {
+    try {
+      await kv.hmset(`subscription:${id}`, {
+        id: rec.id,
+        userId: rec.userId,
+        userEmail: rec.userEmail,
+        productId: rec.productId,
+        amount: String(rec.amount),
+        status: rec.status,
+        createdAt: String(rec.createdAt),
+        confirmedAt: ''
+      });
+      await kv.sadd('subscriptions:set', id);
+      await kv.sadd(`user:subs:${rec.userId}`, id);
+      return rec;
+    } catch {
+      // fall through
+    }
+  }
+  memSubscriptions.push(rec);
+  return rec;
+}
+
+export async function listSubscriptionsByUserId(userId: string): Promise<SubscriptionRequest[]> {
+  if (kv.enabled) {
+    try {
+      const ids = await kv.smembers(`user:subs:${userId}`);
+      const out: SubscriptionRequest[] = [];
+      for (const id of ids) {
+        const data = await kv.hgetall(`subscription:${id}`);
+        if (!data?.id) continue;
+        out.push({
+          id: data.id,
+          userId: data.userId,
+          userEmail: data.userEmail,
+          productId: (data.productId as ProductId) ?? 'master2',
+          amount: Number(data.amount ?? 0),
+          status: (data.status as SubscriptionStatus) ?? 'pending',
+          createdAt: Number(data.createdAt ?? 0),
+          confirmedAt: data.confirmedAt ? Number(data.confirmedAt) : undefined
+        });
+      }
+      return out.sort((a, b) => b.createdAt - a.createdAt);
+    } catch {
+      // fall through
+    }
+  }
+  return memSubscriptions.filter((s) => s.userId === userId).slice().sort((a, b) => b.createdAt - a.createdAt);
+}
+
+export async function listPendingSubscriptions(): Promise<SubscriptionRequest[]> {
+  if (kv.enabled) {
+    try {
+      const ids = await kv.smembers('subscriptions:set');
+      const out: SubscriptionRequest[] = [];
+      for (const id of ids) {
+        const data = await kv.hgetall(`subscription:${id}`);
+        if (!data?.id) continue;
+        const status = (data.status as SubscriptionStatus) ?? 'pending';
+        if (status !== 'pending') continue;
+        out.push({
+          id: data.id,
+          userId: data.userId,
+          userEmail: data.userEmail,
+          productId: (data.productId as ProductId) ?? 'master2',
+          amount: Number(data.amount ?? 0),
+          status,
+          createdAt: Number(data.createdAt ?? 0),
+          confirmedAt: data.confirmedAt ? Number(data.confirmedAt) : undefined
+        });
+      }
+      return out.sort((a, b) => b.createdAt - a.createdAt);
+    } catch {
+      // fall through
+    }
+  }
+  return memSubscriptions.filter((s) => s.status === 'pending').slice().sort((a, b) => b.createdAt - a.createdAt);
+}
+
+export async function confirmSubscription(id: string): Promise<SubscriptionRequest | null> {
+  const now = Date.now();
+  if (kv.enabled) {
+    try {
+      const data = await kv.hgetall(`subscription:${id}`);
+      if (!data?.id) return null;
+      const status = (data.status as SubscriptionStatus) ?? 'pending';
+      if (status === 'confirmed') {
+        return {
+          id: data.id,
+          userId: data.userId,
+          userEmail: data.userEmail,
+          productId: (data.productId as ProductId) ?? 'master2',
+          amount: Number(data.amount ?? 0),
+          status: 'confirmed',
+          createdAt: Number(data.createdAt ?? 0),
+          confirmedAt: Number(data.confirmedAt ?? now)
+        };
+      }
+      const productId = (data.productId as ProductId) ?? 'master2';
+      const amount = Number(data.amount ?? 0);
+      const cfg = await getProductConfig(productId);
+      const unitsDelta = amount / Math.max(Number(cfg.nav) || 1, 1e-9);
+      const prev = await getHolding(data.userId, productId);
+      await setHolding({ ...prev, units: (Number(prev.units) || 0) + unitsDelta, updatedAt: now });
+      await kv.hmset(`subscription:${id}`, { ...data, status: 'confirmed', confirmedAt: String(now) });
+      return {
+        id: data.id,
+        userId: data.userId,
+        userEmail: data.userEmail,
+        productId,
+        amount,
+        status: 'confirmed',
+        createdAt: Number(data.createdAt ?? 0),
+        confirmedAt: now
+      };
+    } catch {
+      // fall through
+    }
+  }
+  const idx = memSubscriptions.findIndex((s) => s.id === id);
+  if (idx < 0) return null;
+  const current = memSubscriptions[idx];
+  if (current.status === 'confirmed') return current;
+  const cfg = await getProductConfig(current.productId);
+  const unitsDelta = current.amount / Math.max(Number(cfg.nav) || 1, 1e-9);
+  const prev = await getHolding(current.userId, current.productId);
+  await setHolding({ ...prev, units: (Number(prev.units) || 0) + unitsDelta, updatedAt: now });
+  const next: SubscriptionRequest = { ...current, status: 'confirmed', confirmedAt: now };
+  memSubscriptions[idx] = next;
+  return next;
+}
