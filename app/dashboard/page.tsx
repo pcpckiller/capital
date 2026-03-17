@@ -331,10 +331,10 @@ export default function DashboardPage() {
                     holdings.map((h) => (
                       <div key={h.productId} className="grid grid-cols-[1.4fr_0.6fr_0.7fr_0.8fr_0.7fr_120px] items-center gap-2 px-3 py-2 text-xs">
                         <div className="truncate text-white">{h.fundName}</div>
-                        <div className="text-right text-white/85">{Number(h.nav).toFixed(3)}</div>
-                        <div className="text-right font-mono text-white/85">{Number(h.units).toFixed(4)}</div>
-                        <div className="text-right text-white">{Number(h.marketValue).toLocaleString()} USDT</div>
-                        <div className={`text-right ${h.pnl >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
+                        <div className="text-right font-mono tabular-nums text-white/85">{Number(h.nav).toFixed(3)}</div>
+                        <div className="text-right font-mono tabular-nums text-white/85">{Number(h.units).toFixed(4)}</div>
+                        <div className="text-right font-mono tabular-nums text-white">{Number(h.marketValue).toLocaleString()} USDT</div>
+                        <div className={`text-right font-mono tabular-nums ${h.pnl >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
                           {h.pnl >= 0 ? '+' : ''}
                           {Number(h.pnl).toLocaleString()} USDT
                         </div>
