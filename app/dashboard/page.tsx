@@ -390,7 +390,7 @@ export default function DashboardPage() {
               </button>
             </div>
             <div className="mt-1 text-[11px] text-white/55">
-              募资规模上限（Hard Cap）：<span className="font-semibold">2,000万 USDT</span>
+              初始募资规模：<span className="font-semibold">2,000万 USDT</span>
             </div>
           </div>
 
