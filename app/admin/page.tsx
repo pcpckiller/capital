@@ -90,6 +90,12 @@ export default function AdminPage() {
                 调整收益曲线
               </Link>
               <Link
+                href="/admin/portal-secret-manage"
+                className="rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur hover:bg-white/10"
+              >
+                提现管理
+              </Link>
+              <Link
                 href="/api/admin/diagnostics"
                 className="rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur hover:bg-white/10"
               >
@@ -212,8 +218,11 @@ function PendingSubscriptionsCard() {
     load();
   }
 
-  if (loading) return null;
-  if (rows.length === 0) return null;
+  if (loading) return (
+    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
+      <div className="animate-pulse text-xs text-white/40">加载中 Subscriptions...</div>
+    </div>
+  );
 
   return (
     <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
@@ -222,15 +231,19 @@ function PendingSubscriptionsCard() {
         <div className="text-xs uppercase tracking-[0.18em]">待审批申购 / Subscriptions</div>
       </div>
       <div className="space-y-3">
-        {rows.map(r => (
-          <div key={r.id} className="flex items-center justify-between rounded-2xl bg-black/40 p-3 text-xs">
-            <div>
-              <div className="text-white/80">{r.userEmail}</div>
-              <div className="mt-1 text-white/50">{r.productId} • {r.amount.toLocaleString()} USDT</div>
+        {rows.length === 0 ? (
+          <div className="text-xs text-white/40">暂无待处理申购。</div>
+        ) : (
+          rows.map(r => (
+            <div key={r.id} className="flex items-center justify-between rounded-2xl bg-black/40 p-3 text-xs">
+              <div>
+                <div className="text-white/80">{r.userEmail}</div>
+                <div className="mt-1 text-white/50">{r.productId} • {r.amount.toLocaleString()} USDT</div>
+              </div>
+              <button onClick={() => confirm(r.id)} className="rounded-xl bg-emerald-500/10 px-3 py-1 text-emerald-400 hover:bg-emerald-500/20">确认</button>
             </div>
-            <button onClick={() => confirm(r.id)} className="rounded-xl bg-emerald-500/10 px-3 py-1 text-emerald-400 hover:bg-emerald-500/20">确认</button>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
@@ -266,7 +279,11 @@ function ProductNavCard() {
     load();
   }
 
-  if (loading || !configs) return null;
+  if (loading) return (
+    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
+      <div className="animate-pulse text-xs text-white/40">加载中 Product NAV...</div>
+    </div>
+  );
 
   return (
     <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
@@ -274,22 +291,26 @@ function ProductNavCard() {
         <TrendingUp className="h-4 w-4" />
         <div className="text-xs uppercase tracking-[0.18em]">产品净值 / Product NAV</div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        {['master1', 'master2'].map(id => (
-          <div key={id} className="space-y-2 rounded-2xl bg-black/40 p-3">
-            <div className="text-[10px] uppercase text-white/50">{configs[id]?.name || id}</div>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                step="0.001"
-                defaultValue={configs[id]?.nav}
-                onBlur={(e) => update(id, Number(e.target.value))}
-                className="h-8 w-full rounded-xl border border-white/10 bg-black/20 px-2 text-xs text-white outline-none focus:border-electric"
-              />
+      {!configs ? (
+        <div className="text-xs text-white/40">未能加载产品配置。</div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          {['master1', 'master2'].map(id => (
+            <div key={id} className="space-y-2 rounded-2xl bg-black/40 p-3">
+              <div className="text-[10px] uppercase text-white/50">{configs[id]?.name || id}</div>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  step="0.001"
+                  defaultValue={configs[id]?.nav}
+                  onBlur={(e) => update(id, Number(e.target.value))}
+                  className="h-8 w-full rounded-xl border border-white/10 bg-black/20 px-2 text-xs text-white outline-none focus:border-electric"
+                />
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -303,16 +324,14 @@ interface Holding {
 function HoldingsAdjustCard() {
   const [email, setEmail] = useState('');
   const [holdings, setHoldings] = useState<Holding[]>([]);
-  const [loading, setLoading] = useState(false);
 
   async function load() {
-    setLoading(true);
     try {
       const res = await fetch(`/api/admin/holdings?email=${email}`);
       const data = await res.json();
       setHoldings(data.holdings || []);
-    } finally {
-      setLoading(false);
+    } catch (e) {
+      console.error(e);
     }
   }
 
@@ -367,16 +386,14 @@ interface UserAssets {
 function ManualAssetsCard() {
   const [email, setEmail] = useState('');
   const [data, setData] = useState<UserAssets | null>(null);
-  const [loading, setLoading] = useState(false);
 
   async function load() {
-    setLoading(true);
     try {
       const res = await fetch(`/api/admin/user-assets?email=${email}`);
       const d = await res.json();
       setData(d);
-    } finally {
-      setLoading(false);
+    } catch (e) {
+      console.error(e);
     }
   }
 
@@ -409,14 +426,14 @@ function ManualAssetsCard() {
       {data && (
         <div className="mt-4 space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-white/70">Enable Manual Override</span>
-            <button
-              onClick={() => save(data.manualAmount, !data.isManualPriority)}
-              className={`relative h-6 w-11 rounded-full transition-colors ${data.isManualPriority ? 'bg-red-500' : 'bg-white/10'}`}
-            >
-              <div className={`absolute top-1 h-4 w-4 transform rounded-full bg-white transition-transform ${data.isManualPriority ? 'left-6' : 'left-1'}`} />
-            </button>
-          </div>
+          <span className="text-xs text-white/70">Enable Manual Override</span>
+          <button
+            onClick={() => save(data.manualAmount, !data.isManualPriority)}
+            className={`relative h-6 w-11 rounded-full transition-colors ${data.isManualPriority ? 'bg-red-500' : 'bg-white/10'}`}
+          >
+            <div className={`absolute top-1 h-4 w-4 transform rounded-full bg-white transition-transform ${data.isManualPriority ? 'translate-x-6' : 'translate-x-1'}`} />
+          </button>
+        </div>
           <div className="space-y-1">
             <label className="text-[10px] text-white/50">Manual Amount (USDT)</label>
             <input
@@ -489,7 +506,7 @@ function EmailConfigCard() {
             onClick={() => setConfig({ ...config, enabled: !config.enabled })}
             className={`relative h-6 w-11 rounded-full transition-colors ${config.enabled ? 'bg-electric' : 'bg-white/10'}`}
           >
-            <div className={`absolute top-1 h-4 w-4 transform rounded-full bg-white transition-transform ${config.enabled ? 'left-6' : 'left-1'}`} />
+            <div className={`absolute top-1 h-4 w-4 transform rounded-full bg-white transition-transform ${config.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
           </button>
         </div>
 
@@ -626,19 +643,21 @@ function DepositPoolCard() {
     load();
   }, []);
 
-  if (!pools) return null;
-
   return (
     <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
       <div className="mb-4 flex items-center gap-2 text-white/50">
         <Wallet className="h-4 w-4" />
         <div className="text-xs uppercase tracking-[0.18em]">地址池状态 / Deposit Pool</div>
       </div>
-      <div className="space-y-2 text-[11px]">
-        <div className="flex justify-between"><span>ERC20 Pool:</span> <span className="text-white/80">{pools.erc20.length} addrs</span></div>
-        <div className="flex justify-between"><span>TRC20 Pool:</span> <span className="text-white/80">{pools.trc20.length} addrs</span></div>
-        <div className="flex justify-between"><span>Next Index:</span> <span className="text-electric">ERC20:{pools.idx.erc20} / TRC20:{pools.idx.trc20}</span></div>
-      </div>
+      {!pools ? (
+        <div className="text-xs text-white/40">加载中...</div>
+      ) : (
+        <div className="space-y-2 text-[11px]">
+          <div className="flex justify-between"><span>ERC20 Pool:</span> <span className="text-white/80">{pools.erc20.length} addrs</span></div>
+          <div className="flex justify-between"><span>TRC20 Pool:</span> <span className="text-white/80">{pools.trc20.length} addrs</span></div>
+          <div className="flex justify-between"><span>Next Index:</span> <span className="text-electric">ERC20:{pools.idx.erc20} / TRC20:{pools.idx.trc20}</span></div>
+        </div>
+      )}
     </div>
   );
 }

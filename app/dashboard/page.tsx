@@ -135,16 +135,17 @@ export default function DashboardPage() {
     loadSubscriptions();
   }, []);
 
+  const userEmail = session?.user?.email;
   useEffect(() => {
-      async function load() {
-        if (!session?.user) return;
-        const res = await fetch('/api/portfolio');
-        if (!res.ok) return;
-        const data = await res.json();
-        setPortfolio(data);
-      }
-      load();
-    }, [session?.user?.email]);
+    async function load() {
+      if (!userEmail) return;
+      const res = await fetch('/api/portfolio');
+      if (!res.ok) return;
+      const data = await res.json();
+      setPortfolio(data);
+    }
+    load();
+  }, [userEmail]); // 使用 email 作为更稳定的依赖
 
   useEffect(() => {
     async function loadCurve() {
@@ -168,12 +169,11 @@ export default function DashboardPage() {
     loadDeposit();
   }, []);
 
+  const userId = (session?.user as { id?: string } | undefined)?.id;
   useEffect(() => {
-    // 当会话准备好后再拉取一次，避免初次 401 导致未赋值
-    const userId = (session?.user as { id?: string } | undefined)?.id;
-    if (!userId) return;
     let cancelled = false;
     async function refetch() {
+      if (!userId) return;
       try {
         const res = await fetch('/api/deposit-address', { cache: 'no-store' });
         if (!res.ok) return;
@@ -185,7 +185,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [(session?.user as { id?: string } | undefined)?.id]);
+  }, [userId]);
 
   useEffect(() => {
     async function loadMyWithdrawals() {
