@@ -2,10 +2,19 @@
 
 import React, {
   FormEvent,
+  useEffect,
   useState,
 } from 'react';
 
-import { ShieldCheck } from 'lucide-react';
+import {
+  History,
+  Mail,
+  ShieldCheck,
+  Trash2,
+  TrendingUp,
+  Users,
+  Wallet,
+} from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
@@ -56,117 +65,113 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-bg px-4 text-white">
+    <main className="flex min-h-dvh items-center justify-center bg-bg px-4 text-white py-12">
       <div className="w-full max-w-xl space-y-5">
         <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="text-xs uppercase tracking-[0.18em] text-white/50">Admin</div>
-          <div className="flex gap-2">
-            <Link
-              href="/admin/users"
-              className="rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur hover:bg-white/10"
-            >
-              查看注册用户
-            </Link>
-            <Link
-              href="/admin/posts"
-              className="rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur hover:bg-white/10"
-            >
-              发布公告
-            </Link>
-            <Link
-              href="/admin/curve"
-              className="rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur hover:bg-white/10"
-            >
-              调整收益曲线
-            </Link>
-            <Link
-              href="/api/admin/diagnostics"
-              className="rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur hover:bg-white/10"
-            >
-              环境诊断
-            </Link>
-            <Link
-              href="/api/admin/diagnostics/kv-test"
-              className="rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur hover:bg-white/10"
-            >
-              KV连通性
-            </Link>
-          </div>
-        </div>
-        <div className="mb-4 flex items-center gap-2">
-          <ShieldCheck className="h-4 w-4 text-electric" />
-          <div>
-            <div className="text-sm font-semibold">Admin: 更新投资人账户</div>
-            <div className="text-[11px] text-white/60">
-              通过邮箱定位用户，并更新余额、净值、累计盈亏与封闭期。
+          <div className="mb-3 flex items-center justify-between">
+            <div className="text-xs uppercase tracking-[0.18em] text-white/50">Admin</div>
+            <div className="flex gap-2">
+              <Link
+                href="/admin/users"
+                className="rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur hover:bg-white/10"
+              >
+                查看注册用户
+              </Link>
+              <Link
+                href="/admin/posts"
+                className="rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur hover:bg-white/10"
+              >
+                发布公告
+              </Link>
+              <Link
+                href="/admin/curve"
+                className="rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur hover:bg-white/10"
+              >
+                调整收益曲线
+              </Link>
+              <Link
+                href="/api/admin/diagnostics"
+                className="rounded-2xl border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur hover:bg-white/10"
+              >
+                环境诊断
+              </Link>
             </div>
           </div>
+          <div className="mb-4 flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-electric" />
+            <div>
+              <div className="text-sm font-semibold">Admin: 更新投资人账户</div>
+              <div className="text-[11px] text-white/60">
+                通过邮箱定位用户，并更新余额、净值、累计盈亏与封闭期。
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-3 text-xs">
+            <div className="space-y-1">
+              <label className="text-white/70">投资人邮箱 / Email</label>
+              <input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                type="email"
+                className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-white/70">总资产 / Total Balance (USDT)</label>
+                <input
+                  value={totalBalance}
+                  onChange={(e) => setTotalBalance(e.target.value)}
+                  type="number"
+                  className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-white/70">累计盈亏 / Cumulative PnL (USDT)</label>
+                <input
+                  value={cumulativePnl}
+                  onChange={(e) => setCumulativePnl(e.target.value)}
+                  type="number"
+                  className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-white/70">净值 / NAV</label>
+                <input
+                  value={nav}
+                  onChange={(e) => setNav(e.target.value)}
+                  type="number"
+                  step="0.001"
+                  className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-white/70">封闭期结束时间 / Lockup End (ISO)</label>
+                <input
+                  value={lockupEnd}
+                  onChange={(e) => setLockupEnd(e.target.value)}
+                  type="datetime-local"
+                  className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              className="mt-2 inline-flex h-9 items-center justify-center rounded-2xl bg-electric px-4 text-xs font-semibold text-white shadow-glowStrong hover:brightness-110"
+            >
+              保存更新
+            </button>
+            {message && <div className="mt-2 text-[11px] text-white/65">{message}</div>}
+          </form>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3 text-xs">
-          <div className="space-y-1">
-            <label className="text-white/70">投资人邮箱 / Email</label>
-            <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              type="email"
-              className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-white/70">总资产 / Total Balance (USDT)</label>
-              <input
-                value={totalBalance}
-                onChange={(e) => setTotalBalance(e.target.value)}
-                type="number"
-                className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-white/70">累计盈亏 / Cumulative PnL (USDT)</label>
-              <input
-                value={cumulativePnl}
-                onChange={(e) => setCumulativePnl(e.target.value)}
-                type="number"
-                className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-white/70">净值 / NAV</label>
-              <input
-                value={nav}
-                onChange={(e) => setNav(e.target.value)}
-                type="number"
-                step="0.001"
-                className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-white/70">封闭期结束时间 / Lockup End (ISO)</label>
-              <input
-                value={lockupEnd}
-                onChange={(e) => setLockupEnd(e.target.value)}
-                type="datetime-local"
-                className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
-              />
-            </div>
-          </div>
-          <button
-            type="submit"
-            className="mt-2 inline-flex h-9 items-center justify-center rounded-2xl bg-electric px-4 text-xs font-semibold text-white shadow-glowStrong hover:brightness-110"
-          >
-            保存更新
-          </button>
-          {message && <div className="mt-2 text-[11px] text-white/65">{message}</div>}
-        </form>
-        </div>
         <PendingSubscriptionsCard />
         <ProductNavCard />
         <HoldingsAdjustCard />
         <ManualAssetsCard />
+        <EmailConfigCard />
         <FundraisingCard />
         <DepositPoolCard />
         <DeleteUserCard />
@@ -175,30 +180,241 @@ export default function AdminPage() {
   );
 }
 
-function FundraisingCard() {
+function PendingSubscriptionsCard() {
+  const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [progress, setProgress] = useState<number>(0);
-  const [updatedAt, setUpdatedAt] = useState<number>(0);
-  const [updatedAtInput, setUpdatedAtInput] = useState<string>('');
+
+  async function load() {
+    const res = await fetch('/api/admin/subscriptions');
+    const data = await res.json();
+    setRows(Array.isArray(data) ? data : []);
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function confirm(id: string) {
+    if (!confirm('确认该笔申购？')) return;
+    await fetch('/api/admin/subscriptions', {
+      method: 'POST',
+      body: JSON.stringify({ id })
+    });
+    load();
+  }
+
+  if (loading) return null;
+  if (rows.length === 0) return null;
+
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
+      <div className="mb-4 flex items-center gap-2 text-white/50">
+        <History className="h-4 w-4" />
+        <div className="text-xs uppercase tracking-[0.18em]">待审批申购 / Subscriptions</div>
+      </div>
+      <div className="space-y-3">
+        {rows.map(r => (
+          <div key={r.id} className="flex items-center justify-between rounded-2xl bg-black/40 p-3 text-xs">
+            <div>
+              <div className="text-white/80">{r.userEmail}</div>
+              <div className="mt-1 text-white/50">{r.productId} • {r.amount.toLocaleString()} USDT</div>
+            </div>
+            <button onClick={() => confirm(r.id)} className="rounded-xl bg-emerald-500/10 px-3 py-1 text-emerald-400 hover:bg-emerald-500/20">确认</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProductNavCard() {
+  const [configs, setConfigs] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  async function load() {
+    const res = await fetch('/api/admin/products');
+    const data = await res.json();
+    setConfigs(data);
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function update(id: string, nav: number) {
+    await fetch('/api/admin/products', {
+      method: 'POST',
+      body: JSON.stringify({ productId: id, nav })
+    });
+    load();
+  }
+
+  if (loading || !configs) return null;
+
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
+      <div className="mb-4 flex items-center gap-2 text-white/50">
+        <TrendingUp className="h-4 w-4" />
+        <div className="text-xs uppercase tracking-[0.18em]">产品净值 / Product NAV</div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {['master1', 'master2'].map(id => (
+          <div key={id} className="space-y-2 rounded-2xl bg-black/40 p-3">
+            <div className="text-[10px] uppercase text-white/50">{configs[id]?.name || id}</div>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                step="0.001"
+                defaultValue={configs[id]?.nav}
+                onBlur={(e) => update(id, Number(e.target.value))}
+                className="h-8 w-full rounded-xl border border-white/10 bg-black/20 px-2 text-xs text-white outline-none focus:border-electric"
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HoldingsAdjustCard() {
+  const [email, setEmail] = useState('');
+  const [holdings, setHoldings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  async function load() {
+    setLoading(true);
+    const res = await fetch(`/api/admin/holdings?email=${email}`);
+    const data = await res.json();
+    setHoldings(data.holdings || []);
+    setLoading(false);
+  }
+
+  async function update(pid: string, units: number) {
+    await fetch('/api/admin/holdings', {
+      method: 'POST',
+      body: JSON.stringify({ email, productId: pid, units })
+    });
+    load();
+  }
+
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
+      <div className="mb-4 flex items-center gap-2 text-white/50">
+        <Users className="h-4 w-4" />
+        <div className="text-xs uppercase tracking-[0.18em]">持仓调整 / Holdings Adjustment</div>
+      </div>
+      <div className="flex gap-2">
+        <input
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          placeholder="投资人邮箱"
+          className="h-9 flex-1 rounded-2xl border border-white/10 bg-black/40 px-3 text-xs text-white outline-none focus:border-electric"
+        />
+        <button onClick={load} className="rounded-2xl bg-white/10 px-4 text-xs">查询</button>
+      </div>
+      {holdings.length > 0 && (
+        <div className="mt-4 space-y-2">
+          {holdings.map(h => (
+            <div key={h.productId} className="flex items-center justify-between rounded-2xl bg-black/40 p-3 text-xs">
+              <div className="text-white/70">{h.fundName}</div>
+              <input
+                type="number"
+                step="0.0001"
+                defaultValue={h.units}
+                onBlur={e => update(h.productId, Number(e.target.value))}
+                className="h-8 w-24 rounded-xl border border-white/10 bg-black/20 px-2 text-right text-white outline-none focus:border-electric"
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ManualAssetsCard() {
+  const [email, setEmail] = useState('');
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function load() {
+    setLoading(true);
+    const res = await fetch(`/api/admin/user-assets?email=${email}`);
+    const d = await res.json();
+    setData(d);
+    setLoading(false);
+  }
+
+  async function save(manualAmount: number, isManualPriority: boolean) {
+    await fetch('/api/admin/user-assets', {
+      method: 'POST',
+      body: JSON.stringify({ email, manualAmount, isManualPriority })
+    });
+    load();
+  }
+
+  const isManual = data?.isManualPriority;
+
+  return (
+    <div className={`rounded-3xl border p-6 shadow-glow backdrop-blur transition-colors ${isManual ? 'border-red-500/40 bg-red-500/5' : 'border-white/10 bg-white/[0.03]'}`}>
+      <div className="mb-4 flex items-center gap-2 text-white/50">
+        <TrendingUp className="h-4 w-4" />
+        <div className="text-xs uppercase tracking-[0.18em]">资产手动覆盖 / Manual Asset Override</div>
+      </div>
+      {isManual && <div className="mb-3 text-[10px] font-bold uppercase text-red-400">手动覆盖已开启 / Manual Override Active</div>}
+      <div className="flex gap-2">
+        <input
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          placeholder="投资人邮箱"
+          className="h-9 flex-1 rounded-2xl border border-white/10 bg-black/40 px-3 text-xs text-white outline-none focus:border-electric"
+        />
+        <button onClick={load} className="rounded-2xl bg-white/10 px-4 text-xs">读取</button>
+      </div>
+      {data && (
+        <div className="mt-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-white/70">Enable Manual Override</span>
+            <button
+              onClick={() => save(data.manualAmount, !data.isManualPriority)}
+              className={`relative h-6 w-11 rounded-full transition-colors ${data.isManualPriority ? 'bg-red-500' : 'bg-white/10'}`}
+            >
+              <div className={`absolute top-1 h-4 w-4 transform rounded-full bg-white transition-transform ${data.isManualPriority ? 'left-6' : 'left-1'}`} />
+            </button>
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] text-white/50">Manual Amount (USDT)</label>
+            <input
+              type="number"
+              defaultValue={data.manualAmount}
+              onBlur={e => save(Number(e.target.value), data.isManualPriority)}
+              className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs text-white outline-none focus:border-electric"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EmailConfigCard() {
+  const [config, setConfig] = useState({
+    host: '',
+    port: 465,
+    user: '',
+    pass: '',
+    from: '',
+    enabled: false
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     async function load() {
-      setLoading(true);
-      const res = await fetch('/api/admin/fundraising', { cache: 'no-store' });
+      const res = await fetch('/api/admin/config/email');
       const data = await res.json().catch(() => null);
-      if (res.ok) {
-        setProgress(Number(data?.progress ?? 0));
-        const t = Number(data?.updatedAt ?? 0);
-        setUpdatedAt(t);
-        if (t > 0) {
-          const d = new Date(t);
-          const pad = (n: number) => String(n).padStart(2, '0');
-          const local = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-          setUpdatedAtInput(local);
-        }
-      } else {
-        setMessage(data?.error ?? '加载失败');
+      if (res.ok && data) {
+        setConfig(data);
       }
       setLoading(false);
     }
@@ -206,386 +422,177 @@ function FundraisingCard() {
   }, []);
 
   async function save() {
+    setSaving(true);
     setMessage(null);
-    let ts: number | undefined = undefined;
-    if (updatedAtInput) {
-      const parsed = new Date(updatedAtInput).getTime();
-      if (!Number.isNaN(parsed) && parsed > 0) ts = parsed;
-    }
-    const res = await fetch('/api/admin/fundraising', {
+    const res = await fetch('/api/admin/config/email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ progress, updatedAt: ts })
+      body: JSON.stringify(config)
     });
-    const data = await res.json().catch(() => null);
-    if (!res.ok) {
-      setMessage(data?.error ?? '保存失败');
-      return;
+    if (res.ok) {
+      setMessage('配置已保存。');
+    } else {
+      setMessage('保存失败，请重试。');
     }
-    setProgress(Number(data?.progress ?? progress));
-    const t2 = Number(data?.updatedAt ?? Date.now());
-    setUpdatedAt(t2);
-    if (t2 > 0) {
-      const d = new Date(t2);
-      const pad = (n: number) => String(n).padStart(2, '0');
-      setUpdatedAtInput(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`);
+    setSaving(false);
+  }
+
+  if (loading) return null;
+
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
+      <div className="mb-4 flex items-center gap-2 text-white/50">
+        <Mail className="h-4 w-4" />
+        <div className="text-xs uppercase tracking-[0.18em]">邮箱配置 / Email Configuration</div>
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-white/70">开启邮箱验证 / Enable OTP</span>
+          <button
+            onClick={() => setConfig({ ...config, enabled: !config.enabled })}
+            className={`relative h-6 w-11 rounded-full transition-colors ${config.enabled ? 'bg-electric' : 'bg-white/10'}`}
+          >
+            <div className={`absolute top-1 h-4 w-4 transform rounded-full bg-white transition-transform ${config.enabled ? 'left-6' : 'left-1'}`} />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className="text-[10px] text-white/50">SMTP Host</label>
+            <input
+              value={config.host}
+              onChange={(e) => setConfig({ ...config, host: e.target.value })}
+              className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs text-white outline-none focus:border-electric"
+              placeholder="smtp.example.com"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] text-white/50">Port</label>
+            <input
+              type="number"
+              value={config.port}
+              onChange={(e) => setConfig({ ...config, port: Number(e.target.value) })}
+              className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs text-white outline-none focus:border-electric"
+              placeholder="465"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] text-white/50">User / Username</label>
+            <input
+              value={config.user}
+              onChange={(e) => setConfig({ ...config, user: e.target.value })}
+              className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs text-white outline-none focus:border-electric"
+              placeholder="user@example.com"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] text-white/50">Password</label>
+            <input
+              type="password"
+              value={config.pass}
+              onChange={(e) => setConfig({ ...config, pass: e.target.value })}
+              className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs text-white outline-none focus:border-electric"
+              placeholder="••••••••"
+            />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] text-white/50">Sender Name / From</label>
+          <input
+            value={config.from}
+            onChange={(e) => setConfig({ ...config, from: e.target.value })}
+            className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs text-white outline-none focus:border-electric"
+            placeholder="Cartoon Capital IR"
+          />
+        </div>
+
+        <button
+          onClick={save}
+          disabled={saving}
+          className="mt-2 inline-flex h-9 w-full items-center justify-center rounded-2xl bg-electric px-4 text-xs font-semibold text-white shadow-glowStrong hover:brightness-110 disabled:opacity-50"
+        >
+          {saving ? '保存中…' : '保存配置'}
+        </button>
+        {message && <div className="text-[10px] text-white/60">{message}</div>}
+      </div>
+    </div>
+  );
+}
+
+function FundraisingCard() {
+  const [progress, setProgress] = useState('');
+  const [updatedAt, setUpdatedAt] = useState('');
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      const res = await fetch('/api/fundraising');
+      const data = await res.json();
+      setProgress(data.progress.toString());
+      if (data.updatedAt) {
+        const d = new Date(data.updatedAt);
+        const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        setUpdatedAt(iso);
+      }
     }
+    load();
+  }, []);
+
+  async function save() {
+    const res = await fetch('/api/admin/fundraising', {
+      method: 'POST',
+      body: JSON.stringify({ progress: Number(progress), updatedAt: updatedAt ? new Date(updatedAt).getTime() : undefined })
+    });
+    if (res.ok) setMessage('已更新募资进度。');
   }
 
   return (
     <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="text-xs uppercase tracking-[0.18em] text-white/50">Fundraising</div>
-        {!loading && updatedAt > 0 && (
-          <div className="text-[11px] text-white/50">更新于 {new Date(updatedAt).toLocaleString()}</div>
-        )}
+      <div className="mb-4 flex items-center gap-2 text-white/50">
+        <TrendingUp className="h-4 w-4" />
+        <div className="text-xs uppercase tracking-[0.18em]">募资进度 / Fundraising</div>
       </div>
-      {message && <div className="mb-3 rounded-xl border border-red-800/40 bg-red-900/20 p-2 text-xs text-red-300">{message}</div>}
-      <div className="space-y-2">
-        <div className="h-4 w-full overflow-hidden rounded-full border border-white/10 bg-white/[0.08]">
-          <div
-            className="h-full rounded-full shadow-glowStrong"
-            style={{
-              width: `${Math.max(0, Math.min(100, progress))}%`,
-              background: 'linear-gradient(90deg, #10b981 0%, #34d399 60%, #a7f3d0 100%)'
-            }}
-          />
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <label className="text-[10px] text-white/50">Progress (%)</label>
+          <input value={progress} onChange={e => setProgress(e.target.value)} type="number" className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs text-white outline-none focus:border-electric" />
         </div>
-        <div className="flex items-center gap-3">
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={progress}
-            onChange={(e) => setProgress(Number(e.target.value))}
-            className="flex-1"
-          />
-          <input
-            type="number"
-            min={0}
-            max={100}
-            value={progress}
-            onChange={(e) => setProgress(Number(e.target.value))}
-            className="w-20 rounded-2xl border border-white/10 bg-black/40 px-3 py-1 text-xs outline-none focus:border-electric focus:shadow-glow"
-          />
-          <span className="text-xs text-white/70">% </span>
-        </div>
-        <div className="grid gap-2 pt-1 sm:grid-cols-[1fr_auto]">
-          <div className="space-y-1">
-            <div className="text-[11px] text-white/60">更新时间（可选）</div>
-            <input
-              type="datetime-local"
-              value={updatedAtInput}
-              onChange={(e) => setUpdatedAtInput(e.target.value)}
-              className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
-            />
-          </div>
-          <button
-            onClick={save}
-            className="inline-flex h-9 items-center justify-center rounded-2xl bg-electric px-4 text-xs font-semibold text-white shadow-glowStrong hover:brightness-110"
-          >
-            保存
-          </button>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setProgress(0)}
-              className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 text-xs font-semibold text-white/80 hover:bg-white/10"
-            >
-              清零
-            </button>
-            <button
-              onClick={() => setProgress(100)}
-              className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 text-xs font-semibold text-white/80 hover:bg-white/10"
-            >
-              拉满
-            </button>
-          </div>
+        <div className="space-y-1">
+          <label className="text-[10px] text-white/50">Updated At</label>
+          <input value={updatedAt} onChange={e => setUpdatedAt(e.target.value)} type="datetime-local" className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs text-white outline-none focus:border-electric" />
         </div>
       </div>
+      <button onClick={save} className="mt-3 w-full rounded-2xl bg-white/10 py-2 text-xs">保存</button>
+      {message && <div className="mt-2 text-[10px] text-white/50">{message}</div>}
     </div>
   );
 }
 
 function DepositPoolCard() {
-  const [erc20, setErc20] = useState('');
-  const [trc20, setTrc20] = useState('');
-  const [message, setMessage] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [kvStatus, setKvStatus] = useState<'unknown' | 'enabled' | 'disabled'>('unknown');
-  const [counts, setCounts] = useState<{ erc20: number; trc20: number }>({ erc20: 0, trc20: 0 });
-  const [idx, setIdx] = useState<{ erc20: number; trc20: number }>({ erc20: 0, trc20: 0 });
+  const [pools, setPools] = useState<any>(null);
 
-  React.useEffect(() => {
-    async function probe() {
-      try {
-        const res = await fetch('/api/admin/diagnostics/kv-test', { cache: 'no-store' });
-        const data = await res.json().catch(() => null);
-        setKvStatus(data?.enabled ? 'enabled' : 'disabled');
-      } catch {
-        setKvStatus('unknown');
-      }
+  useEffect(() => {
+    async function load() {
+      const res = await fetch('/api/admin/deposit-addresses');
+      const d = await res.json();
+      setPools(d);
     }
-    probe();
-    async function loadPools() {
-      try {
-        const res = await fetch('/api/admin/deposit-addresses', { cache: 'no-store' });
-        const data = await res.json().catch(() => null);
-        if (res.ok && data) {
-          const eArr = Array.isArray(data.erc20) ? data.erc20 : [];
-          const tArr = Array.isArray(data.trc20) ? data.trc20 : [];
-          setCounts({ erc20: eArr.length, trc20: tArr.length });
-          setIdx({
-            erc20: Number(data?.idx?.erc20 ?? 0),
-            trc20: Number(data?.idx?.trc20 ?? 0)
-          });
-          // 仅当文本框为空时预填，避免覆盖正在编辑的内容
-          setErc20((prev) => (prev ? prev : eArr.join('\n')));
-          setTrc20((prev) => (prev ? prev : tArr.join('\n')));
-        }
-      } catch {}
-    }
-    loadPools();
+    load();
   }, []);
 
-  async function save() {
-    setMessage(null);
-    setSaving(true);
-    const erc20Arr = erc20
-      .split(/\r?\n|,|;/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const trc20Arr = trc20
-      .split(/\r?\n|,|;/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-    const res = await fetch('/api/admin/deposit-addresses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ erc20: erc20Arr, trc20: trc20Arr })
-    });
-    const data = await res.json().catch(() => null);
-    if (!res.ok) {
-      setMessage(data?.error ?? '保存失败');
-    } else {
-      setMessage(data?.persistent ? '地址池已更新（已持久化）' : '地址池已更新（仅当前实例内有效，建议配置 KV）');
-      // 保存成功后刷新一次统计与指针
-      try {
-        const r2 = await fetch('/api/admin/deposit-addresses', { cache: 'no-store' });
-        const d2 = await r2.json().catch(() => null);
-        if (r2.ok && d2) {
-          setCounts({ erc20: (d2.erc20 || []).length, trc20: (d2.trc20 || []).length });
-          setIdx({ erc20: Number(d2?.idx?.erc20 ?? 0), trc20: Number(d2?.idx?.trc20 ?? 0) });
-        }
-      } catch {}
-    }
-    setSaving(false);
-  }
+  if (!pools) return null;
 
   return (
     <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="text-xs uppercase tracking-[0.18em] text-white/50">Deposit Address Pools</div>
-        <div className="text-[11px] text-white/50">
-          KV 状态：
-          <span className={kvStatus === 'enabled' ? 'text-emerald-300' : 'text-amber-300'}>
-            {kvStatus === 'enabled' ? '已配置' : kvStatus === 'disabled' ? '未配置' : '未知'}
-          </span>
-        </div>
+      <div className="mb-4 flex items-center gap-2 text-white/50">
+        <Wallet className="h-4 w-4" />
+        <div className="text-xs uppercase tracking-[0.18em]">地址池状态 / Deposit Pool</div>
       </div>
-      <div className="mb-2 text-[11px] text-white/60">
-        当前存储：
-        <span className={kvStatus === 'enabled' ? 'ml-1 rounded-md bg-emerald-400/10 px-1.5 py-0.5 text-emerald-300' : 'ml-1 rounded-md bg-amber-400/10 px-1.5 py-0.5 text-amber-200'}>
-          {kvStatus === 'enabled' ? '持久化至 KV（跨实例可见）' : '仅当前实例内存（建议配置 KV）'}
-        </span>
-        <span className="ml-3 text-white/50">
-          当前计数：ERC20 {counts.erc20}（指针 {idx.erc20}） / TRC20 {counts.trc20}（指针 {idx.trc20}）
-        </span>
-      </div>
-      {message && <div className="mb-3 rounded-xl border border-amber-800/40 bg-amber-900/20 p-2 text-xs text-amber-200">{message}</div>}
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1">
-          <div className="text-[11px] text-white/60">ERC20 地址（每行一个）</div>
-          <textarea
-            value={erc20}
-            onChange={(e) => setErc20(e.target.value)}
-            rows={8}
-            className="w-full rounded-2xl border border-white/10 bg-black/40 p-3 text-xs outline-none focus:border-electric focus:shadow-glow"
-            placeholder="0x1234...\n0xABCD..."
-          />
-        </div>
-        <div className="space-y-1">
-          <div className="text-[11px] text-white/60">TRC20 地址（每行一个）</div>
-          <textarea
-            value={trc20}
-            onChange={(e) => setTrc20(e.target.value)}
-            rows={8}
-            className="w-full rounded-2xl border border-white/10 bg-black/40 p-3 text-xs outline-none focus:border-electric focus:shadow-glow"
-            placeholder="TXXXX...\nTYYYY..."
-          />
-        </div>
-      </div>
-      <div className="mt-3 flex gap-2">
-        <button
-          onClick={save}
-          disabled={saving}
-          className="inline-flex h-9 items-center justify-center rounded-2xl bg-electric px-4 text-xs font-semibold text-white shadow-glowStrong hover:brightness-110 disabled:opacity-60"
-        >
-          保存地址池
-        </button>
-        <div className="self-center text-[11px] text-white/55">将按顺序为新注册用户自动分配</div>
-      </div>
-
-      <AssignTester />
-    </div>
-  );
-}
-
-function AssignTester() {
-  const [email, setEmail] = useState('');
-  const [result, setResult] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function run() {
-    setLoading(true);
-    setResult(null);
-    const res = await fetch('/api/admin/deposit-addresses/assign', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
-    });
-    const data = await res.json().catch(() => null);
-    if (!res.ok) {
-      setResult(data?.error ?? '失败');
-    } else {
-      const a = data?.addresses ?? {};
-      setResult(`ERC20: ${a.erc20 || '-'} | TRC20: ${a.trc20 || '-'}`);
-    }
-    setLoading(false);
-  }
-
-  return (
-    <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-      <div className="mb-2 text-xs uppercase tracking-widest text-white/60">分配测试 / Assign Test</div>
-      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-        <input
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          type="email"
-          placeholder="输入已注册的投资人邮箱"
-          className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
-        />
-        <button
-          onClick={run}
-          disabled={!email || loading}
-          className="inline-flex h-9 items-center justify-center rounded-2xl bg-white/10 px-4 text-xs font-semibold text-white hover:bg-white/15 disabled:opacity-60"
-        >
-          {loading ? '处理中…' : '立即分配/查看'}
-        </button>
-      </div>
-      {result && <div className="mt-2 text-[11px] text-white/65">{result}</div>}
-    </div>
-  );
-}
-
-function ManualAssetsCard() {
-  const [email, setEmail] = useState('');
-  const [manual, setManual] = useState('');
-  const [enabled, setEnabled] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-
-  async function load() {
-    setMsg(null);
-    if (!email) return;
-    setLoading(true);
-    const em = email.trim().toLowerCase();
-    const res = await fetch(`/api/admin/user-assets?email=${encodeURIComponent(em)}`, { cache: 'no-store' });
-    const data = await res.json().catch(() => null);
-    if (res.status === 404) {
-      setManual('0');
-      setEnabled(false);
-      setMsg('未找到该用户');
-    } else if (!res.ok) {
-      setMsg(data?.error ?? '加载失败');
-    } else {
-      setManual(String(Number(data?.manualAmount ?? 0)));
-      setEnabled(Boolean(data?.isManualPriority));
-    }
-    setLoading(false);
-  }
-
-  async function save() {
-    setMsg(null);
-    if (!email) return;
-    setLoading(true);
-    const res = await fetch('/api/admin/user-assets', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, manualAmount: Number(manual || 0), isManualPriority: enabled })
-    });
-    const data = await res.json().catch(() => null);
-    if (!res.ok) {
-      setMsg(data?.error ?? '保存失败');
-    } else {
-      setMsg('已保存');
-    }
-    setLoading(false);
-  }
-
-  return (
-    <div className={`rounded-3xl border ${enabled ? 'border-red-500/40 bg-red-900/10' : 'border-white/10 bg-white/[0.03]'} p-6 shadow-glow backdrop-blur`}>
-      <div className="mb-3 flex items-center justify-between">
-        <div className="text-xs uppercase tracking-[0.18em] text-white/50">Manual Asset Override</div>
-        {enabled && <div className="text-[11px] text-red-300">手动覆盖已开启</div>}
-      </div>
-      {msg && <div className={`mb-3 rounded-xl border ${enabled ? 'border-red-800/40 bg-red-900/20' : 'border-amber-800/40 bg-amber-900/20'} p-2 text-xs text-amber-200`}>{msg}</div>}
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-        <input
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          type="email"
-          placeholder="投资人邮箱 / Email"
-          className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
-        />
-        <button
-          onClick={load}
-          className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 text-xs font-semibold text-white/80 hover:bg-white/10"
-        >
-          读取
-        </button>
-      </div>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1">
-          <div className="text-[11px] text-white/60">Manual Amount (USDT)</div>
-          <input
-            value={manual}
-            onChange={(e) => setManual(e.target.value)}
-            type="number"
-            className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
-          />
-        </div>
-        <div className="space-y-1">
-          <div className="text-[11px] text-white/60">Enable Manual Override</div>
-          <label className="inline-flex h-9 items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-3 text-xs font-semibold text-white/80">
-            <input
-              type="checkbox"
-              checked={enabled}
-              onChange={(e) => setEnabled(e.target.checked)}
-              className="h-4 w-4 rounded"
-            />
-            {enabled ? 'ON' : 'OFF'}
-          </label>
-        </div>
-      </div>
-      <div className="mt-3 flex gap-2">
-        <button
-          onClick={save}
-          disabled={loading || !email}
-          className="inline-flex h-9 items-center justify-center rounded-2xl bg-electric px-4 text-xs font-semibold text-white shadow-glowStrong hover:brightness-110 disabled:opacity-60"
-        >
-          保存
-        </button>
-        <div className="self-center text-[11px] text-white/55">开启后前端显示以手动数值为准；关闭后恢复自动。</div>
+      <div className="space-y-2 text-[11px]">
+        <div className="flex justify-between"><span>ERC20 Pool:</span> <span className="text-white/80">{pools.erc20.length} addrs</span></div>
+        <div className="flex justify-between"><span>TRC20 Pool:</span> <span className="text-white/80">{pools.trc20.length} addrs</span></div>
+        <div className="flex justify-between"><span>Next Index:</span> <span className="text-electric">ERC20:{pools.idx.erc20} / TRC20:{pools.idx.trc20}</span></div>
       </div>
     </div>
   );
@@ -594,432 +601,28 @@ function ManualAssetsCard() {
 function DeleteUserCard() {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  async function del() {
-    setMessage(null);
-    if (!email) return;
-    if (!confirm(`确认删除用户 ${email} 及其投资人数据？此操作不可恢复。`)) return;
-    setLoading(true);
+
+  async function handleDelete() {
+    if (!confirm(`确定要删除用户 ${email} 吗？此操作不可逆。`)) return;
     const res = await fetch('/api/admin/users/delete', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email })
     });
-    const data = await res.json().catch(() => null);
-    if (!res.ok) {
-      setMessage(data?.error ?? '删除失败');
-    } else {
-      setMessage('已删除该用户（及其投资人数据）');
-    }
-    setLoading(false);
-  }
-  return (
-    <div className="rounded-3xl border border-red-900/30 bg-red-900/10 p-6 shadow-glow backdrop-blur">
-      <div className="mb-3 text-xs uppercase tracking-[0.18em] text-white/50">Danger Zone</div>
-      {message && (
-        <div className="mb-3 rounded-xl border border-red-800/40 bg-red-900/20 p-2 text-xs text-red-300">
-          {message}
-        </div>
-      )}
-      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-        <input
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          type="email"
-          placeholder="输入要删除的投资人邮箱"
-          className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-red-500 focus:shadow-[0_0_0_1px_rgba(239,68,68,0.35)]"
-        />
-        <button
-          onClick={del}
-          disabled={!email || loading}
-          className="inline-flex h-9 items-center justify-center rounded-2xl border border-red-600/60 bg-red-600/20 px-4 text-xs font-semibold text-red-200 transition hover:bg-red-600/30 disabled:opacity-60"
-        >
-          {loading ? '删除中…' : '删除用户'}
-        </button>
-      </div>
-      <div className="mt-2 text-[11px] text-white/55">
-        将删除：用户、投资人 Portfolio、专属充值地址绑定；地址不会回收至池（避免误复用）。
-      </div>
-    </div>
-  );
-}
-
-function PendingSubscriptionsCard() {
-  const [rows, setRows] = useState<Array<{ id: string; userEmail: string; amount: number; createdAt: number; productId: 'master1' | 'master2' }>>([]);
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-
-  async function load() {
-    setMsg(null);
-    setLoading(true);
-    try {
-      const res = await fetch('/api/admin/subscriptions', { cache: 'no-store' });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        setMsg(data?.error ?? '加载失败');
-      } else {
-        setRows(Array.isArray(data) ? data : []);
-      }
-    } catch {
-      setMsg('加载失败');
-    }
-    setLoading(false);
-  }
-
-  React.useEffect(() => {
-    load();
-  }, []);
-
-  return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
-      <div className="mb-3 flex items-center justify-between">
-        <div>
-          <div className="text-xs uppercase tracking-[0.18em] text-white/50">Subscriptions</div>
-          <div className="mt-1 text-sm font-semibold">待审批申购</div>
-          <div className="text-[11px] text-white/60">确认后将自动为用户分配【主力2号】持仓份额（Units）。</div>
-        </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 text-xs font-semibold text-white/80 hover:bg-white/10 disabled:opacity-60"
-        >
-          {loading ? '刷新中…' : '刷新'}
-        </button>
-      </div>
-      {msg && <div className="mb-3 rounded-xl border border-amber-800/40 bg-amber-900/20 p-2 text-xs text-amber-200">{msg}</div>}
-      <div className="overflow-x-auto">
-        <div className="min-w-[720px] rounded-2xl border border-white/10 bg-black/40">
-          <div className="grid grid-cols-[200px_1fr_160px_160px] gap-2 border-b border-white/10 px-3 py-2 text-[11px] uppercase tracking-widest text-white/55">
-            <div>时间</div>
-            <div>用户</div>
-            <div className="text-right">金额</div>
-            <div className="text-right">操作</div>
-          </div>
-          <div className="divide-y divide-white/10">
-            {rows.length === 0 ? (
-              <div className="px-3 py-2 text-[11px] text-white/60">暂无待审批申购</div>
-            ) : (
-              rows.map((r) => (
-                <div key={r.id} className="grid grid-cols-[200px_1fr_160px_160px] items-center gap-2 px-3 py-2 text-xs">
-                  <div className="text-white/70">{new Date(r.createdAt).toLocaleString()}</div>
-                  <div className="truncate text-white/85">{r.userEmail}</div>
-                  <div className="text-right text-white">{Number(r.amount).toLocaleString()} USDT</div>
-                  <div className="text-right">
-                    <button
-                      onClick={async () => {
-                        setMsg(null);
-                        const res = await fetch('/api/admin/subscriptions', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ id: r.id })
-                        });
-                        const data = await res.json().catch(() => null);
-                        if (!res.ok) {
-                          setMsg(data?.error ?? '确认失败');
-                          return;
-                        }
-                        setMsg(`已确认：${r.userEmail}（份额已自动分配）`);
-                        await load();
-                      }}
-                      className="inline-flex h-8 items-center justify-center rounded-2xl bg-emerald-500 px-3 text-[11px] font-semibold text-white hover:brightness-110"
-                    >
-                      确认
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function HoldingsAdjustCard() {
-  type HoldingRow = { productId: 'master1' | 'master2'; fundName: string; nav: number; units: number; marketValue: number; pnl: number };
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [rows, setRows] = useState<HoldingRow[]>([]);
-  const [draft, setDraft] = useState<Record<'master1' | 'master2', string>>({ master1: '', master2: '' });
-  const [saving, setSaving] = useState(false);
-
-  async function load() {
-    setMsg(null);
-    const em = email.trim().toLowerCase();
-    if (!em) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/admin/holdings?email=${encodeURIComponent(em)}`, { cache: 'no-store' });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        setMsg(data?.error ?? '加载失败');
-        setRows([]);
-      } else {
-        const holdings = Array.isArray((data as { holdings?: HoldingRow[] } | null)?.holdings)
-          ? ((data as { holdings: HoldingRow[] }).holdings ?? [])
-          : [];
-        setRows(holdings);
-        const m1 = holdings.find((h) => h.productId === 'master1');
-        const m2 = holdings.find((h) => h.productId === 'master2');
-        setDraft({
-          master1: m1 ? String(Number(m1.units ?? 0)) : '0',
-          master2: m2 ? String(Number(m2.units ?? 0)) : '0'
-        });
-      }
-    } catch {
-      setMsg('加载失败');
-      setRows([]);
-    }
-    setLoading(false);
+    const d = await res.json();
+    setMessage(res.ok ? '用户已删除' : d.error);
   }
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
-      <div className="mb-3">
-        <div className="text-xs uppercase tracking-[0.18em] text-white/50">Holdings</div>
-        <div className="mt-1 text-sm font-semibold">持仓分配（Units 手动调整）</div>
-        <div className="text-[11px] text-white/60">管理员可直接修改特定用户的【主力1号/主力2号】持有份额。</div>
+    <div className="rounded-3xl border border-red-500/20 bg-red-500/5 p-6 shadow-glow backdrop-blur">
+      <div className="mb-4 flex items-center gap-2 text-red-400/60">
+        <Trash2 className="h-4 w-4" />
+        <div className="text-xs uppercase tracking-[0.18em]">危险操作 / Danger Zone</div>
       </div>
-      {msg && <div className="mb-3 rounded-xl border border-amber-800/40 bg-amber-900/20 p-2 text-xs text-amber-200">{msg}</div>}
-      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
-        <input
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          type="email"
-          placeholder="投资人邮箱 / Email"
-          className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
-        />
-        <button
-          onClick={load}
-          disabled={!email || loading}
-          className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 text-xs font-semibold text-white/80 hover:bg-white/10 disabled:opacity-60"
-        >
-          {loading ? '读取中…' : '读取持仓'}
-        </button>
+      <div className="flex gap-2">
+        <input value={email} onChange={e => setEmail(e.target.value)} placeholder="要删除的用户邮箱" className="h-9 flex-1 rounded-2xl border border-white/10 bg-black/40 px-3 text-xs text-white outline-none focus:border-red-500/50" />
+        <button onClick={handleDelete} className="rounded-2xl bg-red-500/20 px-4 text-xs text-red-300">删除用户</button>
       </div>
-
-      <div className="mt-3 overflow-x-auto">
-        <div className="min-w-[760px] rounded-2xl border border-white/10 bg-black/40">
-          <div className="grid grid-cols-[1.4fr_0.6fr_0.7fr_0.9fr_0.7fr_160px] gap-2 border-b border-white/10 px-3 py-2 text-[11px] uppercase tracking-widest text-white/55">
-            <div>基金名称</div>
-            <div className="text-right">NAV</div>
-            <div className="text-right">Units</div>
-            <div className="text-right">Market Value</div>
-            <div className="text-right">PnL</div>
-            <div className="text-right">操作</div>
-          </div>
-          <div className="divide-y divide-white/10">
-            {rows.length === 0 ? (
-              <div className="px-3 py-2 text-[11px] text-white/60">请先输入邮箱并读取</div>
-            ) : (
-              rows.map((r) => (
-                <div key={r.productId} className="grid grid-cols-[1.4fr_0.6fr_0.7fr_0.9fr_0.7fr_160px] items-center gap-2 px-3 py-2 text-xs">
-                  <div className="truncate text-white/90">{r.fundName}</div>
-                  <div className="text-right text-white/80">{Number(r.nav).toFixed(3)}</div>
-                  <div className="text-right">
-                    <input
-                      value={draft[r.productId]}
-                      onChange={(e) => setDraft((p) => ({ ...p, [r.productId]: e.target.value }))}
-                      type="number"
-                      step="0.0001"
-                      className="h-8 w-32 rounded-2xl border border-white/10 bg-black/40 px-3 text-xs text-right outline-none focus:border-electric focus:shadow-glow"
-                    />
-                  </div>
-                  <div className="text-right text-white">{Number(r.marketValue).toLocaleString()} USDT</div>
-                  <div className={`text-right ${r.pnl >= 0 ? 'text-emerald-300' : 'text-red-300'}`}>
-                    {r.pnl >= 0 ? '+' : ''}
-                    {Number(r.pnl).toLocaleString()} USDT
-                  </div>
-                  <div className="text-right">
-                    <button
-                      onClick={async () => {
-                        setMsg(null);
-                        const units = Number(draft[r.productId]);
-                        if (!Number.isFinite(units) || units < 0) {
-                          setMsg('Units 输入无效');
-                          return;
-                        }
-                        const res = await fetch('/api/admin/holdings', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ email: email.trim().toLowerCase(), productId: r.productId, units })
-                        });
-                        const data = await res.json().catch(() => null);
-                        if (!res.ok) {
-                          setMsg(data?.error ?? '保存失败');
-                          return;
-                        }
-                        setMsg('已更新 Units');
-                        await load();
-                      }}
-                      className="inline-flex h-8 items-center justify-center rounded-2xl bg-electric px-3 text-[11px] font-semibold text-white shadow-glowStrong hover:brightness-110"
-                    >
-                      保存
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <button
-          onClick={async () => {
-            setMsg(null);
-            const em = email.trim().toLowerCase();
-            if (!em) {
-              setMsg('请先输入邮箱');
-              return;
-            }
-            const u1 = Number(draft.master1);
-            const u2 = Number(draft.master2);
-            if (!Number.isFinite(u1) || u1 < 0 || !Number.isFinite(u2) || u2 < 0) {
-              setMsg('Units 输入无效');
-              return;
-            }
-            setSaving(true);
-            try {
-              const r1 = await fetch('/api/admin/holdings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: em, productId: 'master1', units: u1 })
-              });
-              const d1 = await r1.json().catch(() => null);
-              if (!r1.ok) throw new Error(d1?.error ?? '保存失败');
-              const r2 = await fetch('/api/admin/holdings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: em, productId: 'master2', units: u2 })
-              });
-              const d2 = await r2.json().catch(() => null);
-              if (!r2.ok) throw new Error(d2?.error ?? '保存失败');
-              setMsg('已保存 Units（主力1号/主力2号）');
-              await load();
-            } catch (e) {
-              setMsg(e instanceof Error ? e.message : '保存失败');
-            }
-            setSaving(false);
-          }}
-          disabled={saving}
-          className="inline-flex h-9 items-center justify-center rounded-2xl bg-electric px-4 text-xs font-semibold text-white shadow-glowStrong hover:brightness-110 disabled:opacity-60"
-        >
-          {saving ? '保存中…' : '保存更改'}
-        </button>
-        <div className="text-[11px] text-white/55">如果你在小屏幕看不到行内“保存”，可直接用此按钮一次性保存两行。</div>
-      </div>
-    </div>
-  );
-}
-
-function ProductNavCard() {
-  const [nav1, setNav1] = useState('');
-  const [nav2, setNav2] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-
-  async function load() {
-    setMsg(null);
-    setLoading(true);
-    try {
-      const res = await fetch('/api/admin/products', { cache: 'no-store' });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        setMsg(data?.error ?? '加载失败');
-      } else {
-        setNav1(String(Number(data?.master1?.nav ?? 1)));
-        setNav2(String(Number(data?.master2?.nav ?? 1)));
-      }
-    } catch {
-      setMsg('加载失败');
-    }
-    setLoading(false);
-  }
-
-  React.useEffect(() => {
-    load();
-  }, []);
-
-  async function saveOne(productId: 'master1' | 'master2', nav: number) {
-    const res = await fetch('/api/admin/products', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ productId, nav })
-    });
-    const data = await res.json().catch(() => null);
-    if (!res.ok) throw new Error(data?.error ?? '保存失败');
-  }
-
-  return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-glow backdrop-blur">
-      <div className="mb-3 flex items-center justify-between">
-        <div>
-          <div className="text-xs uppercase tracking-[0.18em] text-white/50">Products</div>
-          <div className="mt-1 text-sm font-semibold">产品 NAV 配置（默认 1）</div>
-          <div className="text-[11px] text-white/60">该 NAV 会影响 Market Value 展示与申购确认时的 Units 分配（Units = Amount / NAV）。</div>
-        </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="inline-flex h-9 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-4 text-xs font-semibold text-white/80 hover:bg-white/10 disabled:opacity-60"
-        >
-          {loading ? '刷新中…' : '刷新'}
-        </button>
-      </div>
-      {msg && <div className="mb-3 rounded-xl border border-amber-800/40 bg-amber-900/20 p-2 text-xs text-amber-200">{msg}</div>}
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1">
-          <label className="text-[11px] text-white/60">主力1号 NAV</label>
-          <input
-            value={nav1}
-            onChange={(e) => setNav1(e.target.value)}
-            type="number"
-            step="0.0001"
-            className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-[11px] text-white/60">主力2号 NAV</label>
-          <input
-            value={nav2}
-            onChange={(e) => setNav2(e.target.value)}
-            type="number"
-            step="0.0001"
-            className="h-9 w-full rounded-2xl border border-white/10 bg-black/40 px-3 text-xs outline-none focus:border-electric focus:shadow-glow"
-          />
-        </div>
-      </div>
-      <div className="mt-3 flex gap-2">
-        <button
-          onClick={async () => {
-            setMsg(null);
-            const n1 = Number(nav1);
-            const n2 = Number(nav2);
-            if (!Number.isFinite(n1) || n1 <= 0 || !Number.isFinite(n2) || n2 <= 0) {
-              setMsg('NAV 必须为大于 0 的数字');
-              return;
-            }
-            setSaving(true);
-            try {
-              await saveOne('master1', n1);
-              await saveOne('master2', n2);
-              setMsg('已保存 NAV');
-              await load();
-            } catch (e) {
-              setMsg(e instanceof Error ? e.message : '保存失败');
-            }
-            setSaving(false);
-          }}
-          disabled={saving}
-          className="inline-flex h-9 items-center justify-center rounded-2xl bg-electric px-4 text-xs font-semibold text-white shadow-glowStrong hover:brightness-110 disabled:opacity-60"
-        >
-          {saving ? '保存中…' : '保存 NAV'}
-        </button>
-        <div className="self-center text-[11px] text-white/55">保存后投资者端持仓与申购分配会使用新 NAV（刷新页面即可）。</div>
-      </div>
+      {message && <div className="mt-2 text-[10px] text-red-400/80">{message}</div>}
     </div>
   );
 }

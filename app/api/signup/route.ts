@@ -1,5 +1,12 @@
 import { NextResponse } from 'next/server';
-import { assignDepositAddresses, createUser, findUserByEmail } from '@/lib/mock-db';
+
+import {
+  assignDepositAddresses,
+  createUser,
+  findUserByEmail,
+  getEmailConfig,
+  verifyOTP,
+} from '@/lib/mock-db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -8,6 +15,18 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   if (!body || typeof body.email !== 'string' || typeof body.password !== 'string' || typeof body.fullName !== 'string') {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+  }
+
+  // Check OTP if enabled
+  const config = await getEmailConfig();
+  if (config.enabled) {
+    if (!body.code) {
+      return NextResponse.json({ error: 'Verification code required' }, { status: 400 });
+    }
+    const isValid = await verifyOTP(body.email, body.code);
+    if (!isValid) {
+      return NextResponse.json({ error: 'Invalid or expired verification code' }, { status: 400 });
+    }
   }
 
   const existing = await findUserByEmail(body.email);

@@ -1009,6 +1009,32 @@ export async function getDepositAddressPools(): Promise<{ erc20: string[]; trc20
 
 export type ProductId = 'master1' | 'master2';
 
+// Email & OTP
+export type EmailConfig = {
+  host: string;
+  port: number;
+  user: string;
+  pass: string;
+  from: string;
+  enabled: boolean;
+};
+
+export type OTPRecord = {
+  email: string;
+  code: string;
+  expires: number;
+};
+
+const memOTP = new Map<string, OTPRecord>();
+let memEmailConfig: EmailConfig = {
+  host: '',
+  port: 465,
+  user: '',
+  pass: '',
+  from: '',
+  enabled: false
+};
+
 export type ProductConfig = {
   id: ProductId;
   name: string;
@@ -1334,4 +1360,75 @@ export async function confirmSubscription(id: string): Promise<SubscriptionReque
   const next: SubscriptionRequest = { ...current, status: 'confirmed', confirmedAt: now };
   memSubscriptions[idx] = next;
   return next;
+}
+
+// ----------------------------
+// OTP & Email Config Logic
+// ----------------------------
+
+export async function setEmailConfig(config: EmailConfig) {
+  if (kv.enabled) {
+    try {
+      await kv.hmset('config:email', config);
+    } catch {
+      // ignore
+    }
+  }
+  memEmailConfig = { ...config };
+}
+
+export async function getEmailConfig(): Promise<EmailConfig> {
+  if (kv.enabled) {
+    try {
+      const data = await kv.hgetall('config:email');
+      if (data) {
+        return {
+          host: String(data.host || ''),
+          port: Number(data.port || 465),
+          user: String(data.user || ''),
+          pass: String(data.pass || ''),
+          from: String(data.from || ''),
+          enabled: String(data.enabled) === 'true'
+        };
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return { ...memEmailConfig };
+}
+
+export async function saveOTP(email: string, code: string) {
+  const expires = Date.now() + 10 * 60 * 1000; // 10 minutes
+  if (kv.enabled) {
+    try {
+      await kv.hmset(`otp:${email}`, { code, expires: String(expires) });
+      await kv.expire(`otp:${email}`, 600);
+    } catch {
+      // ignore
+    }
+  }
+  memOTP.set(email, { email, code, expires });
+}
+
+export async function verifyOTP(email: string, code: string): Promise<boolean> {
+  if (kv.enabled) {
+    try {
+      const data = await kv.hgetall(`otp:${email}`);
+      if (!data) return false;
+      if (String(data.code) === code && Number(data.expires) > Date.now()) {
+        await kv.del(`otp:${email}`);
+        return true;
+      }
+      return false;
+    } catch {
+      // ignore
+    }
+  }
+  const record = memOTP.get(email);
+  if (record && record.code === code && record.expires > Date.now()) {
+    memOTP.delete(email);
+    return true;
+  }
+  return false;
 }

@@ -1,15 +1,60 @@
 'use client';
 
+import {
+  FormEvent,
+  useState,
+} from 'react';
+
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
-import { FormEvent, useState } from 'react';
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
+  async function handleSendCode() {
+    if (!email) {
+      setError('请输入邮箱');
+      return;
+    }
+    setSending(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/auth/otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || '发送失败');
+      } else {
+        setCountdown(60);
+        const timer = setInterval(() => {
+          setCountdown((prev) => {
+            if (prev <= 1) {
+              clearInterval(timer);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+        if (data.message) {
+          setError(data.message); // Show if disabled by admin
+        }
+      }
+    } catch (err) {
+      setError('发送失败，请检查网络');
+    } finally {
+      setSending(false);
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -18,7 +63,7 @@ export default function SignupPage() {
     const res = await fetch('/api/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fullName, email, password })
+      body: JSON.stringify({ fullName, email, password, code })
     });
     if (!res.ok) {
       const data = await res.json().catch(() => null);
@@ -51,13 +96,34 @@ export default function SignupPage() {
             </div>
             <div className="space-y-1">
               <label className="text-xs text-white/60">邮箱 / Email</label>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-11 flex-1 rounded-2xl border border-white/10 bg-white/5 px-3 text-sm outline-none placeholder:text-white/40 focus:border-electric focus:shadow-glow"
+                  placeholder="you@domain.com"
+                />
+                <button
+                  type="button"
+                  disabled={sending || countdown > 0}
+                  onClick={handleSendCode}
+                  className="h-11 whitespace-nowrap rounded-2xl bg-white/10 px-4 text-xs font-medium text-white transition hover:bg-white/15 disabled:opacity-50"
+                >
+                  {countdown > 0 ? `${countdown}s` : '发送验证码'}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-white/60">验证码 / Verification Code</label>
               <input
-                type="email"
+                type="text"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
                 className="h-11 w-full rounded-2xl border border-white/10 bg-white/5 px-3 text-sm outline-none placeholder:text-white/40 focus:border-electric focus:shadow-glow"
-                placeholder="you@domain.com"
+                placeholder="6 位验证码"
               />
             </div>
             <div className="space-y-1">
