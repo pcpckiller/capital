@@ -77,5 +77,8 @@ export const kv = {
   },
   async del(key: string) {
     await pipeline([['DEL', key]]);
+  },
+  async expire(key: string, seconds: number) {
+    await pipeline([['EXPIRE', key, String(seconds)]]);
   }
 };

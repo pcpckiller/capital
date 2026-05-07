@@ -136,14 +136,15 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    async function load() {
-      const res = await fetch('/api/portfolio');
-      if (!res.ok) return;
-      const data = (await res.json()) as Portfolio;
-      setPortfolio(data);
-    }
-    load();
-  }, []);
+      async function load() {
+        if (!session?.user) return;
+        const res = await fetch('/api/portfolio');
+        if (!res.ok) return;
+        const data = await res.json();
+        setPortfolio(data);
+      }
+      load();
+    }, [session?.user?.email]);
 
   useEffect(() => {
     async function loadCurve() {

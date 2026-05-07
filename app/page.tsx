@@ -1,6 +1,6 @@
 'use client';
 
-import {
+import React, {
   useEffect,
   useMemo,
   useRef,
@@ -891,7 +891,7 @@ export default function Page() {
                     {content[lang].alphaHighlight.cardTitle}
                   </div>
                   <div className="mt-2 flex items-end gap-3">
-                  <div className="text-5xl font-semibold tracking-tight text-white">+14.5%</div>
+                    <div className="text-5xl font-semibold tracking-tight text-white">+14.5%</div>
                     <div className="pb-2 text-xs text-white/60">
                       {content[lang].alphaHighlight.cardMetricLabel}
                     </div>
@@ -906,15 +906,15 @@ export default function Page() {
                 </div>
 
                 <div className="mt-5 grid grid-cols-3 gap-3">
-                  {content[lang].alphaHighlight.metrics.map((m) => (
+                  {content[lang].alphaHighlight.metrics.map((item) => (
                     <div
-                      key={m.label}
+                      key={item.label}
                       className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"
                     >
                       <div className="text-[11px] uppercase tracking-widest text-white/55">
-                        {m.label}
+                        {item.label}
                       </div>
-                      <div className="mt-1 text-lg font-semibold">{m.value}</div>
+                      <div className="mt-1 text-lg font-semibold">{item.value}</div>
                     </div>
                   ))}
                 </div>
@@ -1096,10 +1096,12 @@ export default function Page() {
                 className="flex h-16 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] p-3"
                 title={p.name}
               >
-                <img
+                <Image
                   src={p.logo}
                   alt={p.name}
-                  className="max-h-10 opacity-90"
+                  width={120}
+                  height={40}
+                  className="max-h-10 w-auto opacity-90"
                 />
               </div>
             ))}

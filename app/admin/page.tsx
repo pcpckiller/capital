@@ -180,15 +180,25 @@ export default function AdminPage() {
   );
 }
 
+interface Subscription {
+  id: string;
+  userEmail: string;
+  productId: string;
+  amount: number;
+}
+
 function PendingSubscriptionsCard() {
-  const [rows, setRows] = useState<any[]>([]);
+  const [rows, setRows] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function load() {
-    const res = await fetch('/api/admin/subscriptions');
-    const data = await res.json();
-    setRows(Array.isArray(data) ? data : []);
-    setLoading(false);
+    try {
+      const res = await fetch('/api/admin/subscriptions');
+      const data = await res.json();
+      setRows(Array.isArray(data) ? data : []);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { load(); }, []);
@@ -226,15 +236,24 @@ function PendingSubscriptionsCard() {
   );
 }
 
+interface ProductConfig {
+  id: string;
+  name: string;
+  nav: number;
+}
+
 function ProductNavCard() {
-  const [configs, setConfigs] = useState<any>(null);
+  const [configs, setConfigs] = useState<Record<string, ProductConfig> | null>(null);
   const [loading, setLoading] = useState(true);
 
   async function load() {
-    const res = await fetch('/api/admin/products');
-    const data = await res.json();
-    setConfigs(data);
-    setLoading(false);
+    try {
+      const res = await fetch('/api/admin/products');
+      const data = await res.json();
+      setConfigs(data);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { load(); }, []);
@@ -275,17 +294,26 @@ function ProductNavCard() {
   );
 }
 
+interface Holding {
+  productId: string;
+  fundName: string;
+  units: number;
+}
+
 function HoldingsAdjustCard() {
   const [email, setEmail] = useState('');
-  const [holdings, setHoldings] = useState<any[]>([]);
+  const [holdings, setHoldings] = useState<Holding[]>([]);
   const [loading, setLoading] = useState(false);
 
   async function load() {
     setLoading(true);
-    const res = await fetch(`/api/admin/holdings?email=${email}`);
-    const data = await res.json();
-    setHoldings(data.holdings || []);
-    setLoading(false);
+    try {
+      const res = await fetch(`/api/admin/holdings?email=${email}`);
+      const data = await res.json();
+      setHoldings(data.holdings || []);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function update(pid: string, units: number) {
@@ -331,17 +359,25 @@ function HoldingsAdjustCard() {
   );
 }
 
+interface UserAssets {
+  manualAmount: number;
+  isManualPriority: boolean;
+}
+
 function ManualAssetsCard() {
   const [email, setEmail] = useState('');
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<UserAssets | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function load() {
     setLoading(true);
-    const res = await fetch(`/api/admin/user-assets?email=${email}`);
-    const d = await res.json();
-    setData(d);
-    setLoading(false);
+    try {
+      const res = await fetch(`/api/admin/user-assets?email=${email}`);
+      const d = await res.json();
+      setData(d);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function save(manualAmount: number, isManualPriority: boolean) {
@@ -569,8 +605,17 @@ function FundraisingCard() {
   );
 }
 
+interface DepositPools {
+  erc20: string[];
+  trc20: string[];
+  idx: {
+    erc20: number;
+    trc20: number;
+  };
+}
+
 function DepositPoolCard() {
-  const [pools, setPools] = useState<any>(null);
+  const [pools, setPools] = useState<DepositPools | null>(null);
 
   useEffect(() => {
     async function load() {

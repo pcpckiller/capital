@@ -49,7 +49,7 @@ export default function SignupPage() {
           setError(data.message); // Show if disabled by admin
         }
       }
-    } catch (err) {
+    } catch (error) {
       setError('发送失败，请检查网络');
     } finally {
       setSending(false);

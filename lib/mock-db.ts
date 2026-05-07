@@ -1369,7 +1369,14 @@ export async function confirmSubscription(id: string): Promise<SubscriptionReque
 export async function setEmailConfig(config: EmailConfig) {
   if (kv.enabled) {
     try {
-      await kv.hmset('config:email', config);
+      await kv.hmset('config:email', {
+        host: config.host,
+        port: String(config.port),
+        user: config.user,
+        pass: config.pass,
+        from: config.from,
+        enabled: String(config.enabled)
+      });
     } catch {
       // ignore
     }

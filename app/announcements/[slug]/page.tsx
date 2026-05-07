@@ -15,14 +15,17 @@ type Post = {
   updatedAt: number;
 };
 
-export default async function AnnouncementDetail({
+export default async function AnnouncementPage({
   params
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
   const post = await getPostBySlug(slug);
-  if (!post || !post.published) notFound();
+
+  if (!post) {
+    notFound();
+  }
 
   return (
     <main className="min-h-dvh bg-bg px-4 py-8 text-white">
